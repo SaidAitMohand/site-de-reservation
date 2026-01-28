@@ -46,15 +46,25 @@ sequelize.authenticate()
     .then(() => {console.log('Connection has been established successfully.');})
     .catch(err => {console.error('Unable to connect to the database:', err);});
 
-//synchronisation des models avec la base de donnees
-sequelize.sync({ force: false })
+//synchronisation des models avec la base de donnees / Ajout de nouveau utilisateur 
+/*sequelize.sync({ force: false })
     .then(() => {
         console.log('Database & tables created !!!');
         return utilisateur.bulkCreate(utilisateurs);})
-    .then(() => {console.log('Utilisateurs added');})
-    .catch(err => {console.error('Error creating database & tables:', err);});
+    .then(() => {
+        console.log('Utilisateurs added');})
+    .catch(err => {
+        console.error('Error creating database & tables:', err);});
+*/
 
-
+// recuperer les donnees depuis le tableau
+utilisateur.findAll()
+.then(users => {
+    users.forEach(element => {
+        console.log(element.toJSON());
+    })
+})
+.catch();
 
     //---------- Starting the server and defining routes ---------
 //les routes
