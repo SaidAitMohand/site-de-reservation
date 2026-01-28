@@ -25,14 +25,14 @@ const sequelize = new Sequelize(
 //exemple de quelque utilisateurs
 const utilisateurs = [
     {
-        name: 'nordine',
-        username: 'said123',
+        name: 'user3',
+        username: 'username3',
         password: 'password1',
         role: 'admin'
     },
     {
-        name: 'samy',
-        username: 'amine456',
+        name: 'user4',
+        username: 'username4',
         password: 'password2',
         role: 'client'
     }
@@ -46,7 +46,7 @@ sequelize.authenticate()
     .then(() => {console.log('Connection has been established successfully.');})
     .catch(err => {console.error('Unable to connect to the database:', err);});
 
-//synchronisation des models avec la base de donnees / Ajout de nouveau utilisateur 
+//synchronisation des models avec la base de donnees &    --->    Ajout de nouveau utilisateur 
 /*sequelize.sync({ force: false })
     .then(() => {
         console.log('Database & tables created !!!');
@@ -56,7 +56,6 @@ sequelize.authenticate()
     .catch(err => {
         console.error('Error creating database & tables:', err);});
 */
-
 // recuperer les donnees depuis le tableau
 utilisateur.findAll()
 .then(users => {
@@ -71,23 +70,6 @@ utilisateur.findAll()
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/public/index.html');
 });
-
-/*app.get('/requete', (req, res) => {
-    //res.sendFile(__dirname + '/public/index.html');
-    req.getConnection((err, connection) => {
-        if (err) console.error(err);
-        else{
-            connection.query('SELECT * FROM utilisateurs', (err, result)=>{
-                if(err) console.error(err);
-                else {
-                    console.log(result);
-                    res.json(result);
-                }
-            });
-        }
-    });
-});
-*/
 
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
