@@ -39,7 +39,8 @@ const utilisateurs = [
 ];
 //Importation des models
 const utilisateurModel = require('./models/utilisateurs') ;
-const utilisateur = utilisateurModel(sequelize, DataTypes);
+const utilisateur = utilisateurModel(sequelize, DataTypes);  //initialiser le model sequelize 
+                                                            // (c'est un peut la table utilisateur mais en objet JS)
 
 //Test de la connection a la DB
 sequelize.authenticate()
@@ -55,22 +56,33 @@ sequelize.authenticate()
         console.log('Utilisateurs added');})
     .catch(err => {
         console.error('Error creating database & tables:', err);});
-*/
-// recuperer les donnees depuis le tableau
-utilisateur.findAll()
-.then(users => {
-    users.forEach(element => {
-        console.log(element.toJSON());
-    })
-})
-.catch();
+*/ 
 
-    //---------- Starting the server and defining routes ---------
+    //---------------- Starting the server and defining routes ----------------
 //les routes
+        // +++ page d'accueil +++
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/public/index.html');
 });
+        // +++ API utilisateurs +++
+app.get('/users', (req, res)=>{
+    utilisateur.findAll()
+    .then(users => {
+         res.json(users);
+    })
+});
+        // +++ API utilisateur par ID +++
+app.get('/users/:id', (req, res)=>{
+    utilisateur.findByPk(req.params.id)
+    .then(user => {
+        if(!user){
+            return res.status(404).json({error: 'utilisateur non trouvé'});
+        }
+        res.json(user);
+    })
+});
 
+//start server
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });
