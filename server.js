@@ -5,6 +5,7 @@ const port = 3000;
 //middlewares
 app.use(express.static('public'));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 //ORM Sequelize configuration ----------
 const {Sequelize, DataTypes} = require('sequelize');
@@ -22,63 +23,66 @@ const sequelize = new Sequelize(
         logging: false,
     }
 )
-//exemple de quelque utilisateurs
-const utilisateurs = [
-    {
-        name: 'nordine',
-        username: 'said123',
-        password: 'password1',
-        role: 'admin'
-    },
-    {
-        name: 'samy',
-        username: 'amine456',
-        password: 'password2',
-        role: 'client'
-    }
-];
 //Importation des models
 const utilisateurModel = require('./models/utilisateurs') ;
-const utilisateur = utilisateurModel(sequelize, DataTypes);
-
+const utilisateur = utilisateurModel(sequelize, DataTypes);  //initialiser le model sequelize 
+                                                            // (c'est un peut la table utilisateur mais en objet JS)
 //Test de la connection a la DB
 sequelize.authenticate()
     .then(() => {console.log('Connection has been established successfully.');})
     .catch(err => {console.error('Unable to connect to the database:', err);});
 
-//synchronisation des models avec la base de donnees
+/*synchronisation des models avec la base de donnees 
+
+    ps: ce code est a utiliser une seule fois pour creer les tables dans la BDD
+
 sequelize.sync({ force: false })
     .then(() => {
-        console.log('Database & tables created !!!');
-        return utilisateur.bulkCreate(utilisateurs);})
-    .then(() => {console.log('Utilisateurs added');})
-    .catch(err => {console.error('Error creating database & tables:', err);});
+        console.log('Database synchronisee !!!');
+    .catch(err => {
+        console.error('Error creating database & tables:', err);});
+*/ 
 
-
-
-    //---------- Starting the server and defining routes ---------
+    //---------------- Starting the server and defining routes ----------------
 //les routes
+        // +++ page d'accueil +++
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/public/index.html');
 });
-
-/*app.get('/requete', (req, res) => {
-    //res.sendFile(__dirname + '/public/index.html');
-    req.getConnection((err, connection) => {
-        if (err) console.error(err);
-        else{
-            connection.query('SELECT * FROM utilisateurs', (err, result)=>{
-                if(err) console.error(err);
-                else {
-                    console.log(result);
-                    res.json(result);
-                }
-            });
+        // +++ API utilisateurs +++
+app.get('/users', (req, res)=>{
+    utilisateur.findAll()
+    .then(users => {
+         res.json(users);
+    })
+});
+        // +++ API utilisateur par ID +++
+app.get('/users/:id', (req, res)=>{
+    utilisateur.findByPk(req.params.id)
+    .then(user => {
+        if(!user){
+            return res.status(404).json({error: 'utilisateur non trouvé'});
         }
+        res.json(user);
+    })
+});
+
+        // +++ API ajouter utilisateur +++
+app.post('/addUser', (req, res)=>{
+    utilisateur.create(req.body)
+    .then((user)=>{
+        res.status(201).json({
+            message: 'Utilisateur ajouté avec succès',
+            nouveau_Utilisateur: user
+        });
+    })
+    .catch((error)=>{
+        res.status(500).json({
+            erreur: error.message
+        })
     });
 });
-*/
-
+//start server
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });
