@@ -1,11 +1,40 @@
 const express = require('express');
 const app = express();
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = 'une_cle_secrete_tres_longue__pour_le_projet_12345';
 const port = 3000; 
 
 //middlewares
 app.use(express.static('public'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+
+
+// Middleware de protection des routes
+const verifierRole = (rolesAutorises = []) => {
+    return (req, res, next) => {
+        // On récupère le token dans le header "Authorization"
+        const authHeader = req.headers['authorization'];
+        const token = authHeader && authHeader.split(' ')[1];
+
+        if (!token) return res.status(401).json({ message: "Accès refusé " });
+
+        try {
+            const donneesBadge = jwt.verify(token, JWT_SECRET);
+            req.user = donneesBadge;
+
+            // Vérification du rôle 
+            if (rolesAutorises.length && !rolesAutorises.includes(req.user.role)) {
+                return res.status(403).json({ message: " Vous n'avez pas les droits nécessaires." });
+            }
+            next();
+        } catch (err) {
+            res.status(401).json({ message: "Badge invalide ou expiré." });
+        }
+    };
+};
 
 //ORM Sequelize configuration ----------
 const {Sequelize, DataTypes} = require('sequelize');
@@ -51,16 +80,68 @@ sequelize.sync({ alter: true })
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/public/index.html');
 });
+
+
+// ++ inscription des utilisateurs 
+app.post('/inscription', async(req, res) => {
+    try {
+        const { name, username, password, role } = req.body;
+
+        // Hachage du mot de passe (Sécurité)
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const nouveau_utilisateur = await utilisateur.create({
+            name,
+            username,
+            password: hashedPassword,
+            role: role || 'client'
+        });
+
+        res.status(201).json({ message: 'Compte créé avec succès !' });
+    } catch (error) {
+        res.status(500).json({ erreur: error.message });
+    }
+});
+
+// +++ Connexion 
+app.post('/connexion', async(req, res) => {
+    try {
+        const { username, password } = req.body;
+
+        const user = await utilisateur.findOne({ where: { username } });
+        if (!user) return res.status(404).json({ message: "Utilisateur introuvable." });
+
+        if (!user.status) return res.status(403).json({ message: "Ce compte est désactivé." });
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) return res.status(401).json({ message: "Mot de passe incorrect." });
+
+        // Création du Token JWT
+        const token = jwt.sign({ id: user.id, role: user.role },
+            JWT_SECRET, { expiresIn: '12h' }
+        );
+
+        res.json({
+            message: "Connexion réussie !",
+            token: token,
+            role: user.role,
+            name: user.name
+        });
+    } catch (error) {
+        res.status(500).json({ erreur: error.message });
+    }
+});
+
         // +++ API utilisateurs +++
-app.get('/users', (req, res)=>{
-    utilisateur.findAll()
+app.get('/users'verifierRole(['admin']), (req, res)=>{
+    utilisateur.findAll({ attributes: { exclude: ['password'] } })
     .then(users => {
          res.json(users);
     })
 });
         // +++ API utilisateur par ID +++
-app.get('/users/:id', (req, res)=>{
-    utilisateur.findByPk(req.params.id)
+app.get('/users/:id' verifierRole(['admin', 'proprietaire']), (req, res)=>{
+    utilisateur.findByPk(req.params.id,{ attributes: { exclude: ['password'] } })
     .then(user => {
         if(!user){
             return res.status(404).json({error: 'utilisateur non trouvé'});
@@ -70,7 +151,7 @@ app.get('/users/:id', (req, res)=>{
 });
 
         // +++ API ajouter utilisateur +++
-app.post('/addUser', (req, res)=>{
+/*app.post('/addUser', (req, res)=>{
     utilisateur.create(req.body)
     .then((user)=>{
         res.status(201).json({
@@ -83,7 +164,7 @@ app.post('/addUser', (req, res)=>{
             erreur: error.message
         })
     });
-});
+}); */
 //start server
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
