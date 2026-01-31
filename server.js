@@ -3,6 +3,8 @@ const app = express();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = 'une_cle_secrete_tres_longue__pour_le_projet_12345';
+const cors = require('cors');
+app.use(cors());
 const port = 3000; 
 
 //middlewares
@@ -163,6 +165,18 @@ app.get('/users/:id' verifierRole(['admin', 'proprietaire']), (req, res)=>{
         })
     });
 }); */
+// +++ Récupérer toutes les salles pour la carte +++
+app.get("/salles/map", async(req, res) => {
+    try {
+        const toutesLesSalles = await salle.findAll({
+            attributes: ['id', 'nom', 'latitude', 'longitude', 'prix', 'capacite']
+        });
+        res.json(toutesLesSalles);
+    } catch (error) {
+        res.status(500).json({ erreur: error.message });
+    }
+});
+
 //start server
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
