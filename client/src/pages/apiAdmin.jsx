@@ -27,6 +27,7 @@ function ApiAdmin() {
                     <th>mot de passe</th>
                     <th>role</th>
                     <th>status</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
@@ -41,6 +42,9 @@ function ApiAdmin() {
                     <td>{user.password}</td>
                     <td>{user.role}</td>
                     <td>{(user.status)? "Actif" : "Inactif"}</td>
+                    <td>
+                        <button className='enableBtn'>Desactiver</button>
+                    </td>
                 </tr>
             )
            }) 
