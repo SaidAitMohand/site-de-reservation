@@ -166,7 +166,7 @@ app.get('/users/:id' verifierRole(['admin', 'proprietaire']), (req, res)=>{
     });
 }); */
 // +++ Récupérer toutes les salles pour la carte +++
-app.get("/salles/map", async(req, res) => {
+app.get("/all/salles/map", async(req, res) => {
     try {
         const toutesLesSalles = await salle.findAll({
             attributes: ['id', 'nom', 'latitude', 'longitude', 'prix', 'capacite']
