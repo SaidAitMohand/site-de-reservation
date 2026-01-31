@@ -36,13 +36,13 @@ sequelize.authenticate()
 
     ps: ce code est a utiliser une seule fois pour creer les tables dans la BDD
 
-sequelize.sync({ force: false })
+sequelize.sync({ alter: true })
     .then(() => {
-        console.log('Database synchronisee !!!');
+        console.log('Database synchronisee !!!');})
     .catch(err => {
         console.error('Error creating database & tables:', err);});
-*/ 
-
+ 
+*/
     //---------------- Starting the server and defining routes ----------------
 //les routes
         // +++ page d'accueil +++

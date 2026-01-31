@@ -24,6 +24,11 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.ENUM('admin', 'client', 'proprietaire'),
             allowNull: false,
         },
+        status:{
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: true,
+        },
     },
     { 
         timestamps: false,
