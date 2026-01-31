@@ -4,6 +4,7 @@
     "express-myconnection": "^1.0.4",
     "mariadb": "^3.4.5",
     "mysql": "^2.18.1",
+    "react-router-dom": "^7.13.0",
     "sequelize": "^6.37.7"
   },
   "name": "projet",
@@ -17,5 +18,10 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs"
+  "type": "commonjs",
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "autoprefixer": "^10.4.24",
+    "tailwindcss": "^4.1.18"
+  }
 }
