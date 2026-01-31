@@ -27,7 +27,17 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.FLOAT,
         allowNull: false,
       },
+      //les deux paramêtres pour la localisation
+      latitude: {
+        type: DataTypes.FLOAT,
+        allowNull: false,
+      },
 
+      longitude: {
+        type: DataTypes.FLOAT,
+        allowNull: false,
+      },
+      ////////////////////////////////////////
       proprietaire_id: {
         type: DataTypes.INTEGER,
         allowNull: false,
