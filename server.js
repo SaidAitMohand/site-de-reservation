@@ -27,6 +27,8 @@ const sequelize = new Sequelize(
 const utilisateurModel = require('./models/utilisateurs') ;
 const utilisateur = utilisateurModel(sequelize, DataTypes);  //initialiser le model sequelize 
                                                             // (c'est un peut la table utilisateur mais en objet JS)
+const salleModel = require('./models/salles'); 
+const salle = salleModel(sequelize, DataTypes); //On fait la même chose pour la table salles (toujours en objet JS)
 //Test de la connection a la DB
 sequelize.authenticate()
     .then(() => {console.log('Connection has been established successfully.');})
