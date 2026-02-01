@@ -45,7 +45,7 @@ export default function Register() {
       return;
     }
 
-    // Validation Mot de passe
+    
     if (formData.password.length < 6) {
       setError("Le mot de passe doit contenir au moins 6 caractères.");
       return;

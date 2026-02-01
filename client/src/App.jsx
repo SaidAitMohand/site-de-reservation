@@ -8,19 +8,19 @@ export default function App() {
   return (
     <Router>
       <Routes>
-        {/* Page d'accueil */}
+        
         <Route path="/" element={<Home />} />
 
-        {/* Page de connexion ROOMBOOK */}
+        
         <Route path="/login" element={<Login />} />
 
-        {/* Page d'inscription ROOMBOOK */}
+        
         <Route path="/register" element={<Register />} />
 
-        {/* Interface Propriétaire (Dashboard) */}
+        
         <Route path="/owner-dashboard" element={<OwnerDashboard />} />
         
-        {/* Page 404 corrigée */}
+       
         <Route path="*" element={
           <div className="h-screen bg-[#F9F6F2] flex flex-col items-center justify-center font-serif italic text-center px-4">
             <h1 className="text-8xl text-[#0F0F0F] opacity-10">404</h1>

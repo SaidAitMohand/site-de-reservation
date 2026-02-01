@@ -3,7 +3,14 @@ import Navbar from "../Components/Navbar";
 import Footer from "../Components/Footer";
 
 const WILAYAS = [
-  "01 Adrar", "06 Béjaïa", "15 Tizi Ouzou", "16 Alger", "19 Sétif", "23 Annaba", "25 Constantine", "31 Oran"
+  "01 Adrar", "02 Chlef", "03 Laghouat", "04 Oum El Bouaghi", "05 Batna", "06 Béjaïa", "07 Biskra", "08 Béchar", 
+  "09 Blida", "10 Bouira", "11 Tamanrasset", "12 Tébessa", "13 Tlemcen", "14 Tiaret", "15 Tizi Ouzou", "16 Alger", 
+  "17 Djelfa", "18 Jijel", "19 Sétif", "20 Saïda", "21 Skikda", "22 Sidi Bel Abbès", "23 Annaba", "24 Guelma", 
+  "25 Constantine", "26 Médéa", "27 Mostaganem", "28 M'Sila", "29 Mascara", "30 Ouargla", "31 Oran", "32 El Bayadh", 
+  "33 Illizi", "34 Bordj Bou Arreridj", "35 Boumerdès", "36 El Tarf", "37 Tindouf", "38 Tissemsilt", "39 El Oued", 
+  "40 Khenchela", "41 Souk Ahras", "42 Tipaza", "43 Mila", "44 Aïn Defla", "45 Naâma", "46 Aïn Témouchent", 
+  "47 Ghardaïa", "48 Relizane", "49 El M'Ghair", "50 El Meniaa", "51 Ouled Djellal", "52 Bordj Baji Mokhtar", 
+  "53 Béni Abbès", "54 Timimoun", "55 Touggourt", "56 Djanet", "57 In Salah", "58 In Guezzam"
 ];
 
 const EVENT_TYPES = [
@@ -23,7 +30,6 @@ export default function Home() {
     <div className="min-h-screen bg-[#F9F6F2] text-[#1A1A1A] font-light overflow-x-hidden selection:bg-[#B38B59] selection:text-white">
       <Navbar />
 
-      {/* --- RECHERCHE LATÉRALE --- */}
       <div className={`fixed inset-y-0 right-0 w-full md:w-[500px] bg-[#0F0F0F] text-white z-[200] shadow-2xl transform transition-transform duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${isSearchOpen ? "translate-x-0" : "translate-x-full"}`}>
         <div className="p-12 md:p-16 h-full flex flex-col relative">
           
@@ -70,7 +76,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* --- HERO SECTION --- */}
       <header className="relative min-h-screen flex items-center px-8 md:px-20 pt-24">
         <div className="grid md:grid-cols-2 w-full items-center gap-16">
           <div className="z-10 order-2 md:order-1">
@@ -103,7 +108,6 @@ export default function Home() {
         </div>
       </header>
 
-      {/* --- SECTION CATALOGUE --- */}
       <section className="py-32 px-8 md:px-20 max-w-screen-2xl mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-end mb-20 gap-8 border-b border-[#1A1A1A]/10 pb-12">
           <div>

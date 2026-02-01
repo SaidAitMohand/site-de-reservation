@@ -1,7 +1,31 @@
 import { useState } from "react";
 
+const WILAYAS = [
+  "01 Adrar", "02 Chlef", "03 Laghouat", "04 Oum El Bouaghi", "05 Batna", "06 Béjaïa", "07 Biskra", "08 Béchar", 
+  "09 Blida", "10 Bouira", "11 Tamanrasset", "12 Tébessa", "13 Tlemcen", "14 Tiaret", "15 Tizi Ouzou", "16 Alger", 
+  "17 Djelfa", "18 Jijel", "19 Sétif", "20 Saïda", "21 Skikda", "22 Sidi Bel Abbès", "23 Annaba", "24 Guelma", 
+  "25 Constantine", "26 Médéa", "27 Mostaganem", "28 M'Sila", "29 Mascara", "30 Ouargla", "31 Oran", "32 El Bayadh", 
+  "33 Illizi", "34 Bordj Bou Arreridj", "35 Boumerdès", "36 El Tarf", "37 Tindouf", "38 Tissemsilt", "39 El Oued", 
+  "40 Khenchela", "41 Souk Ahras", "42 Tipaza", "43 Mila", "44 Aïn Defla", "45 Naâma", "46 Aïn Témouchent", 
+  "47 Ghardaïa", "48 Relizane", "49 El M'Ghair", "50 El Meniaa", "51 Ouled Djellal", "52 Bordj Baji Mokhtar", 
+  "53 Béni Abbès", "54 Timimoun", "55 Touggourt", "56 Djanet", "57 In Salah", "58 In Guezzam"
+];
+
 export default function AddRoomForm({ isOpen, onClose }) {
   const [images, setImages] = useState([]);
+  const [formData, setFormData] = useState({
+    name: "",
+    type: "Conférence",
+    wilaya: "",
+    capacity: "",
+    price: "",
+    description: ""
+  });
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
@@ -11,6 +35,12 @@ export default function AddRoomForm({ isOpen, onClose }) {
 
   const removeImage = (index) => {
     setImages(images.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log("Nouvel espace enregistré :", { ...formData, images });
+    onClose(); 
   };
 
   if (!isOpen) return null;
@@ -24,7 +54,7 @@ export default function AddRoomForm({ isOpen, onClose }) {
           <button onClick={onClose} className="text-[10px] uppercase tracking-widest opacity-50 hover:opacity-100">Fermer ✕</button>
         </div>
 
-        <form className="p-8 md:p-12 space-y-12" onSubmit={(e) => e.preventDefault()}>
+        <form className="p-8 md:p-12 space-y-12" onSubmit={handleSubmit}>
           
           <div className="space-y-6">
             <p className="text-[11px] uppercase tracking-[0.3em] text-[#B38B59] font-bold">Galerie de l'espace</p>
@@ -55,12 +85,39 @@ export default function AddRoomForm({ isOpen, onClose }) {
               
               <div className="flex flex-col border-b border-[#0F0F0F]/10 py-2">
                 <label className="text-[9px] uppercase tracking-widest opacity-40 mb-1">Nom de la salle</label>
-                <input type="text" placeholder="Ex: Salon Signature" className="bg-transparent outline-none italic text-lg text-[#0F0F0F]" />
+                <input 
+                  type="text" 
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  placeholder="Ex: Salon Signature" 
+                  className="bg-transparent outline-none italic text-lg text-[#0F0F0F]" 
+                  required
+                />
+              </div>
+
+              <div className="flex flex-col border-b border-[#0F0F0F]/10 py-2">
+                <label className="text-[9px] uppercase tracking-widest opacity-40 mb-1">Wilaya</label>
+                <select 
+                  name="wilaya"
+                  value={formData.wilaya}
+                  onChange={handleInputChange}
+                  className="bg-transparent outline-none italic text-[#0F0F0F]"
+                  required
+                >
+                  <option value="">Sélectionner</option>
+                  {WILAYAS.map(w => <option key={w} value={w}>{w}</option>)}
+                </select>
               </div>
 
               <div className="flex flex-col border-b border-[#0F0F0F]/10 py-2">
                 <label className="text-[9px] uppercase tracking-widest opacity-40 mb-1">Type d'espace</label>
-                <select className="bg-transparent outline-none italic text-[#0F0F0F]">
+                <select 
+                  name="type"
+                  value={formData.type}
+                  onChange={handleInputChange}
+                  className="bg-transparent outline-none italic text-[#0F0F0F]"
+                >
                   <option>Conférence</option>
                   <option>Mariage / Fêtes</option>
                   <option>Coworking</option>
@@ -77,17 +134,39 @@ export default function AddRoomForm({ isOpen, onClose }) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col border-b border-[#0F0F0F]/10 py-2">
                   <label className="text-[9px] uppercase tracking-widest opacity-40 mb-1">Capacité (Pers.)</label>
-                  <input type="number" placeholder="50" className="bg-transparent outline-none italic text-[#0F0F0F]" />
+                  <input 
+                    type="number" 
+                    name="capacity"
+                    value={formData.capacity}
+                    onChange={handleInputChange}
+                    placeholder="50" 
+                    className="bg-transparent outline-none italic text-[#0F0F0F]" 
+                  />
                 </div>
                 <div className="flex flex-col border-b border-[#0F0F0F]/10 py-2">
                   <label className="text-[9px] uppercase tracking-widest opacity-40 mb-1">Prix / Jour (DZD)</label>
-                  <input type="number" placeholder="12000" className="bg-transparent outline-none italic font-bold text-[#0F0F0F]" />
+                  <input 
+                    type="number" 
+                    name="price"
+                    value={formData.price}
+                    onChange={handleInputChange}
+                    placeholder="12000" 
+                    className="bg-transparent outline-none italic font-bold text-[#0F0F0F]" 
+                    required
+                  />
                 </div>
               </div>
 
               <div className="flex flex-col border-b border-[#0F0F0F]/10 py-2">
                 <label className="text-[9px] uppercase tracking-widest opacity-40 mb-1">Description</label>
-                <textarea rows="2" placeholder="Décrivez l'ambiance et les équipements..." className="bg-transparent outline-none italic text-sm resize-none text-[#0F0F0F]"></textarea>
+                <textarea 
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  rows="2" 
+                  placeholder="Décrivez l'ambiance..." 
+                  className="bg-transparent outline-none italic text-sm resize-none text-[#0F0F0F]"
+                ></textarea>
               </div>
             </div>
           </div>

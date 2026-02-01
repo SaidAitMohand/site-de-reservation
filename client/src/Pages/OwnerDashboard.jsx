@@ -6,13 +6,9 @@ export default function OwnerDashboard() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
   const [previews, setPreviews] = useState([]);
-  
-  // Correction de l'état pour les réponses
   const [replyText, setReplyText] = useState({ reviewId: null, text: "" });
-  
   const [selectedTypes, setSelectedTypes] = useState([]);
   const eventOptions = ["Mariage", "Conférence", "Anniversaire", "Shooting", "Dîner", "Séminaire"];
-  const [passwords, setPasswords] = useState({ current: "", new: "", confirm: "" });
 
   const [myRooms, setMyRooms] = useState([
     { 
@@ -28,31 +24,22 @@ export default function OwnerDashboard() {
         { id: 101, date: "2024-05-20", time: "14:00 - 18:00", client: "Mariage Benali", status: "En attente" },
       ],
       reviews: [
-        { 
-          id: 1, 
-          user: "Amine K.", 
-          comment: "Superbe salle !", 
-          rating: 5,
-          ownerReply: "Merci beaucoup !" 
-        }
+        { id: 1, user: "Amine K.", comment: "Superbe salle !", rating: 5, ownerReply: "Merci beaucoup !" }
       ]
     }
   ]);
 
-  // --- LOGIQUE RÉPONSES (CORRIGÉE POUR LA MODIFICATION) ---
   const handleSaveReply = (roomId, reviewId) => {
     setMyRooms(myRooms.map(room => {
       if (room.id === roomId) {
         return {
           ...room,
-          reviews: room.reviews.map(rev => 
-            rev.id === reviewId ? { ...rev, ownerReply: replyText.text } : rev
-          )
+          reviews: room.reviews.map(rev => rev.id === reviewId ? { ...rev, ownerReply: replyText.text } : rev)
         };
       }
       return room;
     }));
-    setReplyText({ reviewId: null, text: "" }); // Reset après sauvegarde
+    setReplyText({ reviewId: null, text: "" });
   };
 
   const deleteReply = (roomId, reviewId) => {
@@ -63,7 +50,6 @@ export default function OwnerDashboard() {
     }
   };
 
-  // --- ACTIONS RÉSERVATIONS (CONFIRMER / SUSPENDRE) ---
   const updateBookingStatus = (roomId, bookingId, currentStatus) => {
     const newStatus = currentStatus === "En attente" ? "Confirmé" : "En attente";
     setMyRooms(myRooms.map(room => (room.id === roomId ? {
@@ -96,7 +82,6 @@ export default function OwnerDashboard() {
           <button onClick={() => openEditModal()} className="bg-[#0F0F0F] text-white px-8 py-4 text-[10px] uppercase font-bold tracking-widest hover:bg-[#B38B59] transition-all">+ Nouvelle Salle</button>
         </div>
 
-        {/* RÉSERVATIONS (CONFIRMER / SUSPENDRE) */}
         <section className="mb-20">
           <h2 className="text-xl font-serif italic mb-6 border-b border-stone-200 pb-2">Suivi des Demandes</h2>
           <div className="bg-white border border-stone-200 shadow-sm overflow-hidden">
@@ -125,7 +110,6 @@ export default function OwnerDashboard() {
           </div>
         </section>
 
-        {/* ANNONCES & MODÉRATION */}
         <section className="space-y-12">
           {myRooms.map(room => (
             <div key={room.id} className="bg-white border border-stone-200 overflow-hidden">
@@ -146,15 +130,12 @@ export default function OwnerDashboard() {
                 </div>
               </div>
 
-              {/* AVIS & RÉPONSES MODIFIABLES */}
               <div className="bg-stone-50 p-8 border-t border-stone-100">
                 <h4 className="text-[10px] uppercase font-bold mb-6 opacity-40 italic">Modération & Interactions</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {room.reviews.map(rev => (
                     <div key={rev.id} className="bg-white p-5 border border-stone-200 relative group">
-                      <button onClick={() => {if(window.confirm("Supprimer l'avis client ?")) setMyRooms(myRooms.map(r => r.id === room.id ? {...r, reviews: r.reviews.filter(re => re.id !== rev.id)} : r))}} className="absolute top-2 right-2 text-red-400 opacity-0 group-hover:opacity-100 text-[8px] uppercase font-bold transition-opacity">Supprimer l'avis</button>
                       <p className="text-sm italic mb-2">"{rev.comment}"</p>
-                      
                       {rev.ownerReply && replyText.reviewId !== rev.id ? (
                         <div className="mt-4 p-3 bg-[#F9F6F2] border-l-2 border-[#B38B59] relative group/reply">
                           <p className="text-[8px] uppercase font-bold text-[#B38B59] mb-1">Votre réponse :</p>
@@ -193,7 +174,6 @@ export default function OwnerDashboard() {
         </section>
       </main>
 
-      {/* MODAL SALLE (PHOTOS & TYPES) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0F0F0F]/90 backdrop-blur-sm p-4">
           <div className="bg-[#F9F6F2] w-full max-w-4xl p-12 shadow-2xl overflow-y-auto max-h-[90vh] relative text-[#0F0F0F]">
@@ -234,7 +214,9 @@ export default function OwnerDashboard() {
               </div>
 
               <div className="flex gap-4">
-                <button onClick={() => setIsModalOpen(false)} className="flex-grow bg-[#0F0F0F] text-white py-5 text-[10px] uppercase font-bold tracking-widest hover:bg-[#B38B59]">Sauvegarder les changements</button>
+                <button onClick={() => setIsModalOpen(false)} className="flex-grow bg-[#0F0F0F] text-white py-5 text-[10px] uppercase font-bold tracking-widest hover:bg-[#B38B59]">
+                  {editingRoom ? "Enregistrer les modifications" : "Publier l'espace sur ROOMBOOK"}
+                </button>
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-10 border border-black text-[10px] uppercase font-bold">Annuler</button>
               </div>
             </form>
@@ -242,7 +224,6 @@ export default function OwnerDashboard() {
         </div>
       )}
 
-      {/* MODAL SÉCURITÉ */}
       {isSettingsOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#0F0F0F]/95 backdrop-blur-md p-4">
           <div className="bg-[#F9F6F2] w-full max-w-md p-10 shadow-2xl relative text-[#0F0F0F]">

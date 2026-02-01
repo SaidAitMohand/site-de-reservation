@@ -42,13 +42,13 @@ export default function Login() {
     <div className="min-h-screen bg-[#F9F6F2] selection:bg-[#B38B59] selection:text-white flex flex-col">
       <Navbar />
 
-      {/* SECTION CENTRALE */}
+      {}
       <main className="flex-grow flex items-center justify-center px-6 pt-24 pb-12">
         <div className="w-full max-w-[480px] bg-white border border-[#0F0F0F]/5 p-10 md:p-16 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.05)] transition-all">
           
           {step === "login" ? (
             <div className="space-y-12">
-              {/* TITRE & IDENTITÉ */}
+              {}
               <div className="text-center space-y-3">
                 <h1 className="text-4xl font-serif text-[#0F0F0F] tracking-tight italic">Se connecter</h1>
                 <div className="flex items-center justify-center gap-4">
@@ -59,7 +59,7 @@ export default function Login() {
               </div>
 
               <form onSubmit={handleLogin} className="space-y-8">
-                {/* INPUTS */}
+
                 <div className="space-y-6">
                   <div className="group flex flex-col border-b border-[#0F0F0F]/10 focus-within:border-[#B38B59] transition-all py-2">
                     <label className="text-[9px] uppercase tracking-widest opacity-40 font-bold mb-1 group-focus-within:text-[#B38B59]">Email</label>
@@ -83,7 +83,7 @@ export default function Login() {
                   </div>
                 </div>
 
-                {/* BLOC CAPTCHA ROOMBOOK */}
+
                 <div className="bg-[#0F0F0F] p-6 space-y-4 rounded-sm">
                   <div className="flex justify-between items-center border-b border-white/10 pb-3">
                     <span className="text-2xl font-serif italic tracking-[0.4em] text-[#B38B59] select-none line-through decoration-white/20">
@@ -122,7 +122,7 @@ export default function Login() {
               </form>
             </div>
           ) : (
-            /* MOT DE PASSE OUBLIÉ */
+            
             <div className="space-y-10 text-center animate-in fade-in duration-700">
               <div className="space-y-4">
                 <h1 className="text-4xl font-serif text-[#0F0F0F] italic">Récupération</h1>
@@ -155,7 +155,7 @@ export default function Login() {
             </div>
           )}
 
-          {/* FOOTER CARD */}
+          
           <div className="mt-12 pt-8 border-t border-stone-100 text-center">
             <p className="text-[10px] uppercase tracking-widest opacity-40">
               Nouveau sur la plateforme ? {" "}
