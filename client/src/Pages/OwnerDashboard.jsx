@@ -9,6 +9,7 @@ export default function OwnerDashboard() {
   const [replyText, setReplyText] = useState({ reviewId: null, text: "" });
   const [selectedTypes, setSelectedTypes] = useState([]);
   const eventOptions = ["Mariage", "Conférence", "Anniversaire", "Shooting", "Dîner", "Séminaire"];
+  const [Passwords, SetPasswords] = useState({ current: "", new: "", confirm: "" });
 
   const [myRooms, setMyRooms] = useState([
     { 
@@ -21,10 +22,17 @@ export default function OwnerDashboard() {
       description: "Un espace luxueux avec lustres en cristal, sonorisation JBL intégrée.",
       img: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=300",
       bookings: [
-        { id: 101, date: "2024-05-20", time: "14:00 - 18:00", client: "Mariage Benali", status: "En attente" },
+        { id: 101, date: "20 Mai 2024", time: "14:00 - 18:00", client: "Mariage Benali", status: "En attente" },
+        { id: 102, date: "22 Mai 2024", time: "09:00 - 12:00", client: "Séminaire Tech", status: "Confirmé" },
       ],
       reviews: [
-        { id: 1, user: "Amine K.", comment: "Superbe salle !", rating: 5, ownerReply: "Merci beaucoup !" }
+        { 
+          id: 1, 
+          user: "Amine K.", 
+          comment: "Superbe salle !", 
+          rating: 5,
+          ownerReply: "Merci beaucoup !" 
+        }
       ]
     }
   ]);
@@ -34,7 +42,9 @@ export default function OwnerDashboard() {
       if (room.id === roomId) {
         return {
           ...room,
-          reviews: room.reviews.map(rev => rev.id === reviewId ? { ...rev, ownerReply: replyText.text } : rev)
+          reviews: room.reviews.map(rev => 
+            rev.id === reviewId ? { ...rev, ownerReply: replyText.text } : rev
+          )
         };
       }
       return room;
@@ -82,17 +92,28 @@ export default function OwnerDashboard() {
           <button onClick={() => openEditModal()} className="bg-[#0F0F0F] text-white px-8 py-4 text-[10px] uppercase font-bold tracking-widest hover:bg-[#B38B59] transition-all">+ Nouvelle Salle</button>
         </div>
 
+        {/* --- SECTION SUIVI DES DEMANDES (MISE À JOUR AVEC DATE/HEURE) --- */}
         <section className="mb-20">
-          <h2 className="text-xl font-serif italic mb-6 border-b border-stone-200 pb-2">Suivi des Demandes</h2>
+          <h2 className="text-xl font-serif italic mb-6 border-b border-stone-200 pb-2">Suivi des Demandes & Rendez-vous</h2>
           <div className="bg-white border border-stone-200 shadow-sm overflow-hidden">
             <table className="w-full text-left">
               <thead className="bg-[#0F0F0F] text-white text-[9px] uppercase tracking-widest">
-                <tr><th className="p-6">Espace</th><th className="p-6">Client</th><th className="p-6 text-center">État</th><th className="p-6 text-right">Actions</th></tr>
+                <tr>
+                  <th className="p-6">Date & Heure</th>
+                  <th className="p-6">Espace</th>
+                  <th className="p-6">Client</th>
+                  <th className="p-6 text-center">État</th>
+                  <th className="p-6 text-right">Actions</th>
+                </tr>
               </thead>
               <tbody className="divide-y divide-stone-100 italic">
                 {myRooms.flatMap(room => room.bookings.map(b => (
-                  <tr key={b.id} className="text-xs">
-                    <td className="p-6 font-bold uppercase not-italic">{room.name}</td>
+                  <tr key={b.id} className="text-xs hover:bg-stone-50 transition-colors">
+                    <td className="p-6">
+                      <span className="block font-bold not-italic">{b.date}</span>
+                      <span className="text-[10px] opacity-50">{b.time}</span>
+                    </td>
+                    <td className="p-6 font-bold uppercase not-italic text-[#B38B59]">{room.name}</td>
                     <td className="p-6">{b.client}</td>
                     <td className="p-6 text-center">
                       <span className={`px-4 py-1 rounded-full text-[8px] font-bold uppercase not-italic ${b.status === 'Confirmé' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>{b.status}</span>
@@ -110,11 +131,18 @@ export default function OwnerDashboard() {
           </div>
         </section>
 
+        {/* --- LISTE DES SALLES --- */}
         <section className="space-y-12">
           {myRooms.map(room => (
             <div key={room.id} className="bg-white border border-stone-200 overflow-hidden">
               <div className="flex flex-col md:flex-row">
-                <div className="md:w-80 h-64 overflow-hidden"><img src={room.img} className="w-full h-full object-cover" alt="" /></div>
+                <div className="md:w-80 h-64 overflow-hidden relative">
+                  <img src={room.img} className="w-full h-full object-cover" alt="" />
+                  {/* Badge du nombre de rendez-vous */}
+                  <div className="absolute bottom-4 left-4 bg-[#0F0F0F] text-white px-3 py-1 text-[8px] font-bold uppercase tracking-widest">
+                    {room.bookings.length} Réservation(s)
+                  </div>
+                </div>
                 <div className="p-8 flex-grow">
                   <div className="flex justify-between items-start">
                     <h3 className="text-2xl font-serif">{room.name}</h3>
@@ -126,16 +154,20 @@ export default function OwnerDashboard() {
                   <div className="flex gap-8 mt-10 border-t pt-6">
                     <div><span className="block text-[8px] uppercase opacity-40">Tarif</span><span className="text-lg font-serif italic text-[#B38B59]">{room.price} DA</span></div>
                     <div><span className="block text-[8px] uppercase opacity-40">Revenu Global</span><span className="text-lg font-serif italic">💰 {room.revenue} DA</span></div>
+                    <div><span className="block text-[8px] uppercase opacity-40">Visites</span><span className="text-lg font-serif italic">👁️ {room.views}</span></div>
                   </div>
                 </div>
               </div>
 
+              {/* Modération & Interactions */}
               <div className="bg-stone-50 p-8 border-t border-stone-100">
                 <h4 className="text-[10px] uppercase font-bold mb-6 opacity-40 italic">Modération & Interactions</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {room.reviews.map(rev => (
                     <div key={rev.id} className="bg-white p-5 border border-stone-200 relative group">
+                      <button onClick={() => {if(window.confirm("Supprimer l'avis client ?")) setMyRooms(myRooms.map(r => r.id === room.id ? {...r, reviews: r.reviews.filter(re => re.id !== rev.id)} : r))}} className="absolute top-2 right-2 text-red-400 opacity-0 group-hover:opacity-100 text-[8px] uppercase font-bold transition-opacity">Supprimer l'avis</button>
                       <p className="text-sm italic mb-2">"{rev.comment}"</p>
+                      
                       {rev.ownerReply && replyText.reviewId !== rev.id ? (
                         <div className="mt-4 p-3 bg-[#F9F6F2] border-l-2 border-[#B38B59] relative group/reply">
                           <p className="text-[8px] uppercase font-bold text-[#B38B59] mb-1">Votre réponse :</p>
@@ -174,6 +206,7 @@ export default function OwnerDashboard() {
         </section>
       </main>
 
+      {/* --- MODAL AJOUT/EDITION --- */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0F0F0F]/90 backdrop-blur-sm p-4">
           <div className="bg-[#F9F6F2] w-full max-w-4xl p-12 shadow-2xl overflow-y-auto max-h-[90vh] relative text-[#0F0F0F]">
@@ -224,6 +257,7 @@ export default function OwnerDashboard() {
         </div>
       )}
 
+      {/* --- MODAL PARAMÈTRES --- */}
       {isSettingsOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#0F0F0F]/95 backdrop-blur-md p-4">
           <div className="bg-[#F9F6F2] w-full max-w-md p-10 shadow-2xl relative text-[#0F0F0F]">

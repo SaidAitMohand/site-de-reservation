@@ -3,7 +3,7 @@ import Home from "./Pages/Home";
 import Login from "./Pages/Login";
 import Register from "./Pages/Register";
 import OwnerDashboard from "./Pages/OwnerDashboard"; // Import de la nouvelle page
-
+import ClientDashboard from "./Pages/ClientDashboard";
 export default function App() {
   return (
     <Router>
@@ -20,7 +20,8 @@ export default function App() {
         
         <Route path="/owner-dashboard" element={<OwnerDashboard />} />
         
-       
+        <Route path="/client-dashboard" element={<ClientDashboard/>} />
+        
         <Route path="*" element={
           <div className="h-screen bg-[#F9F6F2] flex flex-col items-center justify-center font-serif italic text-center px-4">
             <h1 className="text-8xl text-[#0F0F0F] opacity-10">404</h1>
