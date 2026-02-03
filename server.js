@@ -1,11 +1,19 @@
 const express = require('express');
 const app = express();
 const port = 3000; 
+const cors = require('cors');
 
 //middlewares
 app.use(express.static('public'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+
+app.use(cors({
+  origin: 'http://localhost:5173',
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  credentials: true
+}));
 
 //ORM Sequelize configuration ----------
 const {Sequelize, DataTypes} = require('sequelize');
@@ -81,6 +89,27 @@ app.post('/addUser', (req, res)=>{
             erreur: error.message
         })
     });
+});
+
+        // +++ API modifier l'etat d'un utilisateur +++
+app.put('/users/:id/status', async(req, res)=>{
+    const {id} = req.params;
+    const {status} = req.body;
+    try{
+        await utilisateur.update(
+            {status: status},
+            {where: {id: id}}
+        );
+        const updatedUser = await utilisateur.findByPk(id);
+        console.log("-------   status modifie dans la BDD   ----------")
+
+        res.json(updatedUser);
+        
+    }catch(error) {
+        res.status(500).json({
+            erreur: error.message
+        });
+    };
 });
 //start server
 app.listen(port, () => {

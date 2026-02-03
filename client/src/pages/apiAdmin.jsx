@@ -15,6 +15,37 @@ function ApiAdmin() {
             setUsers(data);
         })
     }, []);
+    //fonction qui change l'etat de l'utilisateur
+    const switchEtat = (user) => {
+        const newStatus = (user.status === 1)? 0 : 1 
+
+        fetch(`http://localhost:3000/users/${user.id}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status: newStatus })
+            
+        })
+        .then(res => {
+        if (!res.ok) throw new Error('Erreur réseau');
+        return res.json(); // On retourne la promesse ici
+        })
+        .then((data) => {
+            // 'data' contient maintenant l'utilisateur mis à jour renvoyé par le backend
+            console.log("Données reçues :", data);
+            console.log(data.status);
+            console.log(user.status);
+
+            setUsers(prev =>
+                prev.map(u => (u.id == data.id) ? { ...u, status: newStatus } : u)
+            );
+        })
+        .catch(error => {
+            console.error('Erreur lors de la mise à jour du statut:', error);
+        });
+    };
+
     return (
         <>
         <h1>Gestion des Utilisateurs</h1>
@@ -33,9 +64,8 @@ function ApiAdmin() {
             <tbody>
         {
            users.map(user => {
-            console.log(user);
             return(
-                <tr key='{user.id}'>
+                <tr key={user.id}>
                     <td>{user.id}</td>
                     <td>{user.name}</td>
                     <td>{user.username}</td>
@@ -43,7 +73,9 @@ function ApiAdmin() {
                     <td>{user.role}</td>
                     <td>{(user.status)? "Actif" : "Inactif"}</td>
                     <td>
-                        <button className='enableBtn'>Desactiver</button>
+                        <button className='enableBtn' onClick={() => switchEtat(user)}>
+                            {user.status ? 'Désactiver' : 'Activer'}
+                            </button>
                     </td>
                 </tr>
             )
