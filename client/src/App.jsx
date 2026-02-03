@@ -7,7 +7,6 @@ import Login from "./Pages/Login";
 import Register from "./Pages/Register";
 import OwnerDashboard from "./Pages/OwnerDashboard"; 
 import ClientDashboard from "./Pages/ClientDashboard";
-import { Routes, Route } from 'react-router-dom'
 
 import Admin from './pages/apiAdmin'
 import AdminLogin from "./Pages/AdminLogin.jsx";
