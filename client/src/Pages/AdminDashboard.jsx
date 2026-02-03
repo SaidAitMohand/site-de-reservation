@@ -22,12 +22,56 @@ export default function AdminDashboard() {
   const [pwError, setPwError] = useState("");
   const [pwSuccess, setPwSuccess] = useState("");
 
-  
-  const [users, setUsers] = useState([
+  //chargement des utilisateurs
+  /*const [users, setUsers] = useState([
     { id: 1, name: "Amine K.", role: "Client", email: "amine@mail.com", active: true },
     { id: 2, name: "Karine K.", role: "Propriétaire", email: "karine@mail.com", active: true },
     { id: 3, name: "Hocine B.", role: "Propriétaire", email: "hocine@mail.com", active: false },
   ]);
+  */
+  const [users, setUsers] = useState([]);
+    useEffect(() => {
+        fetch('http://localhost:3000/users')
+        .then(res => {
+            if(!res.ok){
+                throw new Error('Erreur lors de la récupération des utilisateurs');
+            }
+            return res.json();
+        })
+        .then(data => {
+            setUsers(data);
+        })
+    }, []);
+
+
+  //fonction qui change l'etat de l'utilisateur
+  const switchEtat = (user) => {
+      const newStatus = (user.status === 1)? 0 : 1 
+
+      fetch(`http://localhost:3000/users/${user.id}/status`, {
+          method: 'PUT',
+          headers: {
+              'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ status: newStatus })
+          
+      })
+      .then(res => {
+      if (!res.ok) throw new Error('Erreur réseau');
+      return res.json(); // On retourne la promesse ici
+      })
+      .then((data) => {
+          // 'data' contient maintenant l'utilisateur mis à jour renvoyé par le backend
+          setUsers(prev =>
+              prev.map(u => (u.id == data.id) ? { ...u, status: newStatus } : u)
+          );
+      })
+      .catch(error => {
+          console.error('Erreur lors de la mise à jour du statut:', error);
+      });
+
+      console.log(`Changement de statut pour l'utilisateur ${user.id} vers ${newStatus}`);
+  };
 
   const [rooms, setRooms] = useState([
     { 
@@ -193,14 +237,14 @@ export default function AdminDashboard() {
                       <tr key={user.id} className="hover:bg-stone-50/50 transition-colors">
                         <td className="p-5">
                           <p className="text-sm font-bold">{user.name}</p>
-                          <p className="text-[10px] opacity-40 italic mt-0.5">{user.role} — {user.email}</p>
+                          <p className="text-[10px] opacity-40 italic mt-0.5">{user.role} — {user.username}</p>
                         </td>
                         <td className="p-5 text-right">
                           <button 
-                            onClick={() => toggleUserStatus(user.id)}
-                            className={`text-[9px] font-bold uppercase px-4 py-2 border transition-all tracking-widest ${user.active ? 'border-red-100 text-red-500 hover:bg-red-50' : 'border-green-100 text-green-500 hover:bg-green-50'}`}
+                            onClick={() => switchEtat(user)}
+                            className={`text-[9px] font-bold uppercase px-4 py-2 border transition-all tracking-widest ${user.status ? 'border-red-100 text-red-500 hover:bg-red-50' : 'border-green-100 text-green-500 hover:bg-green-50'}`}
                           >
-                            {user.active ? "Bannir" : "Réactiver"}
+                            {user.status ? "Bannir" : "Réactiver"}
                           </button>
                         </td>
                       </tr>

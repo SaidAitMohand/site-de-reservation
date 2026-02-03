@@ -5,7 +5,6 @@ const jwt = require('jsonwebtoken');
 const JWT_SECRET = 'une_cle_secrete_tres_longue__pour_le_projet_12345';
 const cors = require('cors');
 const port = 3000; 
-const cors = require('cors');
 
 //middlewares
 app.use(express.static("public"));
@@ -142,7 +141,7 @@ app.post("/connexion", async (req, res) => {
 });
 
 // +++ API utilisateurs +++
-app.get("/users", verifierRole(["admin"]), (req, res) => {
+app.get("/users", (req, res) => {
   utilisateur
     .findAll({ attributes: { exclude: ["password"] } })
     .then((users) => {
