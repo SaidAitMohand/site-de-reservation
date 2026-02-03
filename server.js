@@ -101,8 +101,6 @@ app.put('/users/:id/status', async(req, res)=>{
             {where: {id: id}}
         );
         const updatedUser = await utilisateur.findByPk(id);
-        console.log("-------   status modifie dans la BDD   ----------")
-
         res.json(updatedUser);
         
     }catch(error) {
