@@ -160,22 +160,6 @@ app.get("/users/:id", verifierRole(["admin", "proprietaire"]), (req, res) => {
     });
 });
 
-// +++ API ajouter utilisateur +++
-/*app.post('/addUser', (req, res)=>{
-    utilisateur.create(req.body)
-    .then((user)=>{
-        res.status(201).json({
-            message: 'Utilisateur ajouté avec succès',
-            nouveau_Utilisateur: user
-        });
-    })
-    .catch((error)=>{
-        res.status(500).json({
-            erreur: error.message
-        })
-    });
-}); */
-
 // +++ Récupérer toutes les salles pour la carte +++
 app.get("/all/salles/map", async(req, res) => {
     try {
