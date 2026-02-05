@@ -186,7 +186,7 @@ export default function AdminDashboard() {
                   <option value="Client">Clients</option>
                 </select>
               </div>
-              <div className="max-h-[400px] overflow-y-auto">
+              <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <tbody className="divide-y divide-stone-100">
                     {filteredUsers.map(user => (
@@ -195,10 +195,15 @@ export default function AdminDashboard() {
                           <p className="text-sm font-bold">{user.name}</p>
                           <p className="text-[10px] opacity-40 italic mt-0.5">{user.role} — {user.email}</p>
                         </td>
+                        <td className="p-5">
+                          <span className={`text-[9px] font-bold uppercase px-3 py-1 rounded-full ${user.active ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                            {user.active ? "Compte Actif" : "Banni"}
+                          </span>
+                        </td>
                         <td className="p-5 text-right">
                           <button 
                             onClick={() => toggleUserStatus(user.id)}
-                            className={`text-[9px] font-bold uppercase px-4 py-2 border transition-all tracking-widest ${user.active ? 'border-red-100 text-red-500 hover:bg-red-50' : 'border-green-100 text-green-500 hover:bg-green-50'}`}
+                            className={`text-[9px] font-bold uppercase border px-4 py-2 transition-all tracking-widest ${user.active ? 'border-black text-black hover:bg-black hover:text-white' : 'border-green-600 text-green-600 hover:bg-green-600 hover:text-white'}`}
                           >
                             {user.active ? "Bannir" : "Réactiver"}
                           </button>

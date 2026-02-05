@@ -19,7 +19,7 @@ export default function Login() {
   }, []);
 
   useEffect(() => {
-    generateCaptcha();
+     generateCaptcha();
   }, [generateCaptcha]);
 
   const handleLogin = (e) => {
