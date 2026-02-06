@@ -1,9 +1,14 @@
 {
   "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
     "express": "^5.2.1",
     "express-myconnection": "^1.0.4",
+    "jsonwebtoken": "^9.0.3",
     "mariadb": "^3.4.5",
+    "multer": "^2.0.2",
     "mysql": "^2.18.1",
+    "react-router-dom": "^7.13.0",
     "sequelize": "^6.37.7"
   },
   "name": "projet",
@@ -17,5 +22,18 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs"
+  "type": "commonjs",
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "autoprefixer": "^10.4.24",
+    "tailwindcss": "^4.1.18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SaidAitMohand/site-de-reservation.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SaidAitMohand/site-de-reservation/issues"
+  },
+  "homepage": "https://github.com/SaidAitMohand/site-de-reservation#readme"
 }
