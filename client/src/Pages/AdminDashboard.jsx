@@ -73,7 +73,7 @@ export default function AdminDashboard() {
       console.log(`Changement de statut pour l'utilisateur ${user.id} vers ${newStatus}`);
   };
 
-  const [rooms, setRooms] = useState([
+  /*const [rooms, setRooms] = useState([
     { 
       id: 101, 
       name: "Le Grand Ballroom", 
@@ -100,7 +100,22 @@ export default function AdminDashboard() {
       images: ["https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&w=600"],
       description: "Petite salle de réunion sans photos vérifiées."
     },
-  ]);
+  ]);*/
+  //fetch des salles depuis le backend
+  const [rooms, setRooms] = useState([]);
+  useEffect(() => {
+    fetch('http://localhost:3000/salles')
+    .then(res=>{
+      if(!res.ok){
+        throw new Error('Erreur lors de la récupération des salles');
+      }
+      return res.json();
+    })
+    .then(data => {
+      setRooms(data);
+    })
+  }, []);
+  console.log("voici les rooms : ", rooms );
 
   const [reviews, setReviews] = useState([
     { id: 1, user: "Amine K.", room: "Le Grand Ballroom", comment: "Superbe expérience !", rating: 5 },

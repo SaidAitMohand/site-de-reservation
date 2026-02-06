@@ -228,7 +228,15 @@ app.get("/owner/salles", verifierRole(["proprietaire"]), async (req, res) => {
     res.status(500).json({ erreur: error.message });
   }
 });
-
+//route tomporaire 
+app.get("/salles", async (req, res) => {
+  try {
+    const salles = await salle.findAll()
+    res.json(salles);
+  } catch (error) {
+    res.status(500).json({ erreur: error.message });
+  }
+});
 //route3 : Modifier une Salle avec son ID (PUT)
 
 app.put(
