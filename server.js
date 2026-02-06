@@ -182,7 +182,32 @@ app.post("/commentaires", verifierRole(["client", "proprietaire"]), async (req, 
     res.status(500).json({ erreur: error.message });
   }
 });
+app.delete(
+    "/owner/salles/:id",
+    verifierRole(["proprietaire"]),
+    async(req, res) => {
+        try {
+            const salleExistante = await salle.findOne({
+                where: {
+                    id: req.params.id,
+                    proprietaire_id: req.user.id,
+                },
+            });
 
+            if (!salleExistante) {
+                return res
+                    .status(404)
+                    .json({ message: "Salle introuvable ou accès refusé" });
+            }
+
+            await salleExistante.destroy();
+
+            res.json({ message: "Salle supprimée avec succès" });
+        } catch (error) {
+            res.status(500).json({ erreur: error.message });
+        }
+    },
+);
 // -------------------- ROUTES RESERVATIONS (CLIENT) --------------------
 
 app.get("/client/mes-reservations", verifierRole(["client"]), async (req, res) => {
