@@ -6,7 +6,7 @@
 ## Présentation du projet
 
 Ce projet consiste à concevoir et développer une **plateforme full-stack de réservation de salles**, basée sur un **frontend interactif** et un **backend RESTful**.  
-La plateforme permet aux propriétaires de proposer des salles à la location, aux clients de les réserver et de laisser des avis, et aux administrateurs de superviser l’ensemble du système.
+La plateforme permet aux propriétaires de proposer des salles à louer, aux clients de les réserver et de laisser des avis, et aux administrateurs de gerer l’ensemble du système.
 
 ---
 
