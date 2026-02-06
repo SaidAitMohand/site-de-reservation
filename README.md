@@ -14,7 +14,7 @@ La plateforme permet aux propriétaires de proposer des salles à louer, aux cli
 
 ### Vue d’ensemble
 
-Le projet suit une **architecture client–serveur** et repose sur une séparation claire entre le frontend, le backend et la base de données.
+Le projet suit une **architecture client–serveur** et sépare entre le frontend, le backend et la base de données.
 
 
       [Utilisateur Frontend]   
