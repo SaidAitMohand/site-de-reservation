@@ -121,16 +121,16 @@ export default function ClientDashboard() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {rooms
-            .filter(r => (filterWilaya === "" || r.city === filterWilaya) && (filterBudget === "" || r.price <= parseInt(filterBudget)))
+            //.filter(r => (filterWilaya === "" || r.city === filterWilaya) && (filterBudget === "" || r.price <= parseInt(filterBudget)))
             .map(room => (
             <div key={room.id} className="bg-white border border-stone-200 group relative">
               <div className="h-56 overflow-hidden relative">
                 <img src={room.img} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="" />
-                <div className="absolute top-4 left-4 bg-[#0F0F0F] text-white px-3 py-1 text-[8px] font-bold uppercase tracking-widest">{room.city}</div>
+                <div className="absolute top-4 left-4 bg-[#0F0F0F] text-white px-3 py-1 text-[8px] font-bold uppercase tracking-widest">{room.capacite}</div>
               </div>
               <div className="p-6">
-                <h3 className="text-xl font-serif mb-2">{room.name}</h3>
-                <p className="text-[#B38B59] font-serif italic">{room.price} DA <span className="text-[10px] text-stone-400 not-italic uppercase tracking-widest">/ Jour</span></p>
+                <h3 className="text-xl font-serif mb-2">{room.nom}</h3>
+                <p className="text-[#B38B59] font-serif italic">{room.prix} DA <span className="text-[10px] text-stone-400 not-italic uppercase tracking-widest">/ Jour</span></p>
                 <button onClick={() => setSelectedRoom(room)} className="mt-6 w-full border border-black py-4 text-[9px] uppercase font-bold tracking-[0.2em] hover:bg-black hover:text-white transition-all">Détails & Réserver</button>
               </div>
             </div>
