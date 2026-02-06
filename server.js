@@ -69,17 +69,42 @@ sequelize
     console.error("erreur de connexion à la BDD :", err);
   });
 
-/*synchronisation des models avec la base de donnees 
-
+/*Fonction async pour gérer la synchronisation
+  
     ps: ce code est a utiliser une seule fois pour creer les tables dans la BDD
 
-sequelize.sync({ alter: true })
-    .then(() => {
-        console.log('BDD synchronisee !!!');})
-    .catch(err => {
-        console.error('Erreur lors de la création des tables', err);});
- 
-*/
+ */
+
+async function synchroniserBaseDeDonnees() {
+  try {
+    // Désactiver temporairement les vérifications de clés étrangères
+    await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
+    
+    // Nettoyer les références invalides avant sync
+    await sequelize.query(`
+      DELETE FROM salles 
+      WHERE proprietaire_id NOT IN (SELECT id FROM utilisateurs)
+      OR proprietaire_id IS NULL
+    `);
+    
+    // Synchroniser avec alter
+    await sequelize.sync({ alter: true });
+    
+    // Réactiver les vérifications
+    await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
+    
+    console.log('Database synchronisee !!!');
+  } catch (err) {
+    console.error('Error creating database & tables:', err);
+    // S'assurer de réactiver les contraintes même en cas d'erreur
+    try {
+      await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
+    } catch (e) {}
+  }
+}
+
+// Appeler la fonction
+//synchroniserBaseDeDonnees();
 
 //relations squelize afin d'eviter le bug lors des jointures entres tables
 
@@ -306,9 +331,7 @@ app.get("/all/salles/map", async (req, res) => {
 //Routes pour les commentaires
 
 //Un client ajoute un commentaire (POST )
-app.post(
-  "/commentaires/:salleId",
-  verifierRole(["client"]),
+app.post("/commentaires/:salleId",verifierRole(["client"]),
   async (req, res) => {
     try {
       const commentaire = await Commentaire.create({
