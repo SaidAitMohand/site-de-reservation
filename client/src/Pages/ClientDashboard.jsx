@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Header from "../Components/Header";
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 
 export default function ClientDashboard() {
   const Navigate = useNavigate();
@@ -32,11 +33,13 @@ export default function ClientDashboard() {
   ];
 
   
-  const [availableRooms] = useState([
-    { id: 1, name: "Le Grand Ballroom", city: "16 Alger", price: 12000, img: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=600", unavailableSlots: [] },
-    { id: 2, name: "L'Espace Médina", city: "31 Oran", price: 8500, img: "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&w=600", unavailableSlots: [] },
-    { id: 3, name: "Hôtel Royal", city: "23 Annaba", price: 25000, img: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=600", unavailableSlots: [] }
-  ]);
+  const [rooms, availableRooms] = useState([]);
+  useEffect(() => {
+    //recuperer les salle disponible depuis le backend
+    fetch("http://localhost:5000/api/rooms")
+    .then()
+    .catch(err => console.error("Erreur lors de la récupération des salles :", err));
+  }, []);
 
   const [myBookings, setMyBookings] = useState([
     { id: 1, roomName: "Le Grand Ballroom", city: "16 Alger", date: "2024-05-20", type: "Mariage", status: "En attente" }

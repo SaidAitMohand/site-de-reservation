@@ -206,6 +206,28 @@ app.get("/users/:id", verifierRole(["admin", "proprietaire"]), (req, res) => {
       res.json(user);
     });
 });
+
+// api qui retourne les utilisateur avec le role administrateur
+// Récupérer tous les administrateurs
+app.get("/users/admins", verifierRole(["admin"]), async (req, res) => {
+  try {
+    const administrateurs = await utilisateur.findAll({
+      where: { 
+        role: "admin" 
+      },
+      attributes: { 
+        exclude: ["password"] // Exclure le mot de passe pour la sécurité
+      }
+    });
+    
+    res.json(administrateurs);
+    console.log(administrateurs);
+  } catch (error) {
+    res.status(500).json({ erreur: error.message });
+  }
+});
+
+
 // +++ Récupérer toutes les salles pour la carte +++
 app.get("/all/salles/map", async(req, res) => {
     try {

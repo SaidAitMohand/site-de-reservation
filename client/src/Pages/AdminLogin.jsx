@@ -17,7 +17,7 @@ export default function AdminLogin() {
   const handleLogin = (e) => {
     e.preventDefault();
     const auth = adminList.find(a => a.email === email && a.password === password);
-
+    
     if (auth) {
       localStorage.setItem("isAdmin", "true");
       localStorage.setItem("adminName", auth.name);
