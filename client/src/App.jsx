@@ -1,35 +1,52 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 
+// Pages Utilisateurs (Propriétaires / Clients)
+import Home from "./Pages/Home";
+import Login from "./Pages/Login";
+import Register from "./Pages/Register";
+import OwnerDashboard from "./Pages/OwnerDashboard"; 
+import ClientDashboard from "./Pages/ClientDashboard";
+
+import Admin from './pages/apiAdmin'
+import AdminLogin from "./Pages/AdminLogin.jsx";
+import AdminDashboard from "./Pages/AdminDashboard.jsx";
+
+
+export default function App() {
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    <Router>
+      <Routes>
+        {/* --- PARTIE CLIENTS & PROPRIÉTAIRES --- */}
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/owner-dashboard" element={<OwnerDashboard />} />
+        <Route path="/client-dashboard" element={<ClientDashboard/>} />
 
-export default App
+
+        {/* --- PARTIE ADMINISTRATEUR --- */}
+        {/* On utilise des URLs bien distinctes pour éviter les conflits */}
+        <Route path="/admin-login" element={<AdminLogin />} />
+        <Route path="/admin" element={<Admin />} />
+        <Route path="/admin-dashboard" element={<AdminDashboard />} /> 
+
+
+        {/* --- PAGE 404 --- */}
+        <Route path="*" element={
+          <div className="h-screen bg-[#F9F6F2] flex flex-col items-center justify-center font-serif italic text-center px-4">
+            <h1 className="text-8xl text-[#0F0F0F] opacity-10">404</h1>
+            <div className="absolute flex flex-col items-center">
+              <p className="text-[#B38B59] uppercase tracking-[0.4em] text-[12px] font-sans font-bold">
+                Espace introuvable
+              </p>
+              <Link to="/" className="mt-8 text-[10px] uppercase tracking-[0.2em] border-b border-[#0F0F0F] pb-1 hover:text-[#B38B59] hover:border-[#B38B59] transition-all">
+                Retour à l'expérience ROOMBOOK
+              </Link>
+            </div>
+          </div>
+        } />
+      </Routes>
+    </Router>
+  );
+}
