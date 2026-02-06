@@ -7,32 +7,42 @@ export default function AdminLogin() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
+const handleLogin = async (e) => {
     e.preventDefault();
+    setError(""); // On réinitialise l'erreur
 
     try {
-      const res = await fetch("http://localhost:3000/admin/login", {
+      // 1. Appel de la BONNE route : /connexion
+      const res = await fetch("http://localhost:4000/connexion", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        const err = await res.json();
-        setError(err.message || "Erreur de connexion");
+        setError(data.message || "Erreur de connexion");
         return;
       }
 
-      const data = await res.json();
-      // data = { name: "SUPER-ADMIN", token: "xxx" } par exemple
+      // 2. Vérification du rôle : Est-ce bien un admin ?
+      if (data.role !== "admin") {
+        setError("Accès refusé : Vous n'êtes pas administrateur");
+        return;
+      }
 
+      // 3. Stockage cohérent pour le dashboard
+      // On utilise "token" car c'est le standard attendu par ton middleware
+      localStorage.setItem("token", data.token); 
       localStorage.setItem("isAdmin", "true");
       localStorage.setItem("adminName", data.name);
-      localStorage.setItem("adminToken", data.token);
+      localStorage.setItem("role", data.role);
+
       navigate("/admin-dashboard");
     } catch (err) {
       console.error(err);
-      setError("Impossible de se connecter au serveur");
+      setError("Impossible de contacter le serveur");
     }
   };
 
