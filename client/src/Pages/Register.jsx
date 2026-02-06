@@ -99,7 +99,7 @@ export default function Register() {
                     required 
                     onChange={handleInputChange} 
                     className="bg-transparent outline-none italic" 
-                    placeholder="Ex: kenza.aab"
+                    placeholder="Ex: username"
                 />
               </div>
 
