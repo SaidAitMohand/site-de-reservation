@@ -1,23 +1,21 @@
 const express = require("express");
 const app = express();
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const JWT_SECRET = 'une_cle_secrete_tres_longue__pour_le_projet_12345';
-const cors = require('cors');
-const port = 3000; 
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const JWT_SECRET = "une_cle_secrete_tres_longue__pour_le_projet_12345";
+const cors = require("cors");
+app.use(cors());
+const port = 3000;
 
 //middlewares
 app.use(express.static("public"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
 app.use(cors({
   origin: 'http://localhost:5173',
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   credentials: true
 }));
-
-
 // Middleware de protection des routes
 const verifierRole = (rolesAutorises = []) => {
   return (req, res, next) => {
@@ -43,8 +41,9 @@ const verifierRole = (rolesAutorises = []) => {
     }
   };
 };
+
 //ORM Sequelize configuration ----------
-const { Sequelize, DataTypes } = require("sequelize");
+const { Sequelize, DataTypes, Op } = require("sequelize"); // Op est obligatoire pour les dates( [Op.lt] et [Op.gt] )
 const sequelize = new Sequelize("site_reservation", "root", "", {
   host: "localhost",
   dialect: "mariadb",
@@ -53,12 +52,17 @@ const sequelize = new Sequelize("site_reservation", "root", "", {
   },
   logging: false,
 });
+
 //Importation des models
 const utilisateurModel = require("./models/utilisateurs");
-const utilisateur = utilisateurModel(sequelize, DataTypes); //initialiser le model sequelize
-// (c'est un peut la table utilisateur mais en objet JS)
+const utilisateur = utilisateurModel(sequelize, DataTypes);
 const salleModel = require("./models/salles");
-const salle = salleModel(sequelize, DataTypes); //On fait la même chose pour la table salles (toujours en objet JS)
+const salle = salleModel(sequelize, DataTypes);
+const commentaireModel = require("./models/commentaires");
+const Commentaire = commentaireModel(sequelize, DataTypes);
+const reservationModel = require("./models/reservations");
+const Reservation = reservationModel(sequelize, DataTypes);
+
 //Test de la connection a la DB
 sequelize
   .authenticate()
@@ -69,25 +73,68 @@ sequelize
     console.error("Unable to connect to the database:", err);
   });
 
-/*synchronisation des models avec la base de donnees 
-
+/*Fonction async pour gérer la synchronisation
+  
     ps: ce code est a utiliser une seule fois pour creer les tables dans la BDD
 
-sequelize.sync({ alter: true })
-    .then(() => {
-        console.log('Database synchronisee !!!');})
-    .catch(err => {
-        console.error('Error creating database & tables:', err);});
- 
-*/
-//---------------- Starting the server and defining routes ----------------
-//les routes
-// +++ page d'accueil +++
+ */
+
+async function synchroniserBaseDeDonnees() {
+  try {
+    // Désactiver temporairement les vérifications de clés étrangères
+    await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
+    
+    // Nettoyer les références invalides avant sync
+    await sequelize.query(`
+      DELETE FROM salles 
+      WHERE proprietaire_id NOT IN (SELECT id FROM utilisateurs)
+      OR proprietaire_id IS NULL
+    `);
+    
+    // Synchroniser avec alter
+    await sequelize.sync({ alter: true });
+    
+    // Réactiver les vérifications
+    await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
+    
+    console.log('Database synchronisee !!!');
+  } catch (err) {
+    console.error('Error creating database & tables:', err);
+    // S'assurer de réactiver les contraintes même en cas d'erreur
+    try {
+      await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
+    } catch (e) {}
+  }
+}
+
+// Appeler la fonction
+//synchroniserBaseDeDonnees();
+
+//relations squelize afin d'eviter le bug lors des jointures entres tables
+
+utilisateur.hasMany(salle, { foreignKey: "proprietaire_id" });
+salle.belongsTo(utilisateur, { foreignKey: "proprietaire_id" });
+
+utilisateur.hasMany(Commentaire, { foreignKey: "utilisateur_id" });
+Commentaire.belongsTo(utilisateur, { foreignKey: "utilisateur_id" });
+
+salle.hasMany(Commentaire, { foreignKey: "salle_id" });
+Commentaire.belongsTo(salle, { foreignKey: "salle_id" });
+
+utilisateur.hasMany(Reservation, { foreignKey: "utilisateur_id" });
+Reservation.belongsTo(utilisateur, { foreignKey: "utilisateur_id" });
+
+salle.hasMany(Reservation, { foreignKey: "salle_id" });
+Reservation.belongsTo(salle, { foreignKey: "salle_id" });
+
+//--------------------les routes----------------------------------------------------------------------------------------------------
+// page d'accueil
+
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "/public/index.html");
 });
 
-// ++ inscription des utilisateurs
+//inscription des utilisateurs
 app.post("/inscription", async (req, res) => {
   try {
     const { name, username, password, role } = req.body;
@@ -108,7 +155,7 @@ app.post("/inscription", async (req, res) => {
   }
 });
 
-// +++ Connexion
+//Connexion
 app.post("/connexion", async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -140,15 +187,15 @@ app.post("/connexion", async (req, res) => {
   }
 });
 
-// +++ API utilisateurs +++
-app.get("/users", (req, res) => {
+//API utilisateurs
+app.get("/users", verifierRole(["admin"]), (req, res) => {
   utilisateur
     .findAll({ attributes: { exclude: ["password"] } })
     .then((users) => {
       res.json(users);
     });
 });
-// +++ API utilisateur par ID +++
+// API utilisateur par ID
 app.get("/users/:id", verifierRole(["admin", "proprietaire"]), (req, res) => {
   utilisateur
     .findByPk(req.params.id, { attributes: { exclude: ["password"] } })
@@ -159,7 +206,6 @@ app.get("/users/:id", verifierRole(["admin", "proprietaire"]), (req, res) => {
       res.json(user);
     });
 });
-
 // +++ Récupérer toutes les salles pour la carte +++
 app.get("/all/salles/map", async(req, res) => {
     try {
@@ -191,7 +237,7 @@ app.put('/users/:id/status', async(req, res)=>{
     };
 });
 
-// API REST pour les salles
+// API pour les salles
 
 //route 1 : Ajouter une salle (POST)
 
@@ -292,6 +338,122 @@ app.delete(
     } catch (error) {
       res.status(500).json({ erreur: error.message });
     }
+  },
+);
+
+// +++ Récupérer toutes les salles pour la carte +++
+app.get("/all/salles/map", async (req, res) => {
+  try {
+    const toutesLesSalles = await salle.findAll({
+      attributes: ["id", "nom", "latitude", "longitude", "prix", "capacite"],
+    });
+    res.json(toutesLesSalles);
+  } catch (error) {
+    res.status(500).json({ erreur: error.message });
+  }
+});
+
+//Routes pour les commentaires
+
+//Un client ajoute un commentaire (POST )
+app.post("/commentaires/:salleId",verifierRole(["client"]),
+  async (req, res) => {
+    try {
+      const commentaire = await Commentaire.create({
+        contenu: req.body.contenu,
+        note: req.body.note,
+        utilisateur_id: req.user.id,
+        salle_id: req.params.salleId,
+      });
+
+      res.status(201).json(commentaire);
+    } catch (error) {
+      res.status(500).json({ erreur: error.message });
+    }
+  },
+);
+
+// Voir (GET) commentaires sur une salle par tous le monde (client-proprietaire-admin)
+app.get("/salles/:id/commentaires", async (req, res) => {
+  const commentaires = await Commentaire.findAll({
+    where: { salle_id: req.params.id },
+  });
+  res.json(commentaires);
+});
+
+// Un proprietaire voit (GET) les commentaires de SES salles
+
+app.get(
+  "/owner/commentaires",
+  verifierRole(["proprietaire"]),
+  async (req, res) => {
+    const commentaires = await Commentaire.findAll({
+      include: [
+        {
+          model: salle,
+          where: { proprietaire_id: req.user.id },
+        },
+      ],
+    });
+    res.json(commentaires);
+  },
+);
+
+//Routes des reservations
+//Création d'une réservation de la part d'un client (POST)
+app.post(
+  "/reservations/:salleId",
+  verifierRole(["client"]),
+  async (req, res) => {
+    const { date_debut, date_fin } = req.body;
+
+    const conflit = await Reservation.findOne({
+      where: {
+        salle_id: req.params.salleId,
+        date_debut: { [Op.lt]: date_fin },
+        date_fin: { [Op.gt]: date_debut },
+      },
+    });
+
+    if (conflit) {
+      return res.status(400).json({ message: "Salle indisponible" });
+    }
+
+    const reservation = await Reservation.create({
+      utilisateur_id: req.user.id,
+      salle_id: req.params.salleId,
+      date_debut,
+      date_fin,
+    });
+
+    res.status(201).json(reservation);
+  },
+);
+
+//Un client consulte (GET) ses reservations
+
+app.get("/mes-reservations", verifierRole(["client"]), async (req, res) => {
+  const reservations = await Reservation.findAll({
+    where: { utilisateur_id: req.user.id },
+  });
+  res.json(reservations);
+});
+
+// un proprietaire consulte (GET) les reservations de ses salles
+
+app.get(
+  "/owner/reservations",
+  verifierRole(["proprietaire"]),
+  async (req, res) => {
+    const reservations = await Reservation.findAll({
+      include: [
+        {
+          model: salle,
+          where: { proprietaire_id: req.user.id },
+        },
+      ],
+    });
+    res.json(reservations);
   },
 );
 
