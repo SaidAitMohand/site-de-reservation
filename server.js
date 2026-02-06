@@ -7,7 +7,7 @@ const cors = require("cors");
 app.use(cors());
 const port = 3000;
 
-//middlewares
+// middlewares globaux
 app.use(express.static("public"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -38,7 +38,7 @@ const verifierRole = (rolesAutorises = []) => {
   };
 };
 
-//ORM Sequelize configuration ----------
+//Configuration de l'ORM squelize pour le BDD
 const { Sequelize, DataTypes, Op } = require("sequelize"); // Op est obligatoire pour les dates( [Op.lt] et [Op.gt] )
 const sequelize = new Sequelize("site_reservation", "root", "", {
   host: "localhost",
@@ -49,7 +49,7 @@ const sequelize = new Sequelize("site_reservation", "root", "", {
   logging: false,
 });
 
-//Importation des models
+//Importation des models sequelize
 const utilisateurModel = require("./models/utilisateurs");
 const utilisateur = utilisateurModel(sequelize, DataTypes);
 const salleModel = require("./models/salles");
@@ -59,14 +59,14 @@ const Commentaire = commentaireModel(sequelize, DataTypes);
 const reservationModel = require("./models/reservations");
 const Reservation = reservationModel(sequelize, DataTypes);
 
-//Test de la connection a la DB
+//Test de la connexion a la DB
 sequelize
   .authenticate()
   .then(() => {
-    console.log("Connection has been established successfully.");
+    console.log("Connexion reussie à la BDD");
   })
   .catch((err) => {
-    console.error("Unable to connect to the database:", err);
+    console.error("erreur de connexion à la BDD :", err);
   });
 
 /*synchronisation des models avec la base de donnees 
@@ -75,9 +75,9 @@ sequelize
 
 sequelize.sync({ alter: true })
     .then(() => {
-        console.log('Database synchronisee !!!');})
+        console.log('BDD synchronisee !!!');})
     .catch(err => {
-        console.error('Error creating database & tables:', err);});
+        console.error('Erreur lors de la création des tables', err);});
  
 */
 
@@ -99,6 +99,7 @@ salle.hasMany(Reservation, { foreignKey: "salle_id" });
 Reservation.belongsTo(salle, { foreignKey: "salle_id" });
 
 //--------------------les routes----------------------------------------------------------------------------------------------------
+
 // page d'accueil
 
 app.get("/", (req, res) => {
@@ -407,6 +408,54 @@ app.get(
     res.json(reservations);
   },
 );
+
+// calcul du revenu total du proprietaire
+
+app.get("/owner/revenus", verifierRole(["proprietaire"]), async (req, res) => {
+  try {
+    const reservations = await Reservation.findAll({
+      include: [
+        {
+          model: salle,
+          where: { proprietaire_id: req.user.id },
+          attributes: ["prix", "nom"],
+        },
+      ],
+    });
+
+    let revenuTotal = 0;
+
+    const details = reservations.map((r) => {
+      const dateDebut = new Date(r.date_debut);
+      const dateFin = new Date(r.date_fin);
+
+      //Math.max sert à compter au moins un jour de reservation même si le nombre d'heures est inferieur à 24h
+      const dureeJours = Math.max(
+        1,
+        Math.ceil((dateFin - dateDebut) / (1000 * 60 * 60 * 24)), // Conertir le resultat de la soustraction en nombre de jours
+      );
+      const montant = dureeJours * r.salle.prix;
+      revenuTotal += montant;
+
+      return {
+        salle: r.salle.nom,
+        date_debut: r.date_debut,
+        date_fin: r.date_fin,
+        duree_jours: dureeJours,
+        prix_jour: r.salle.prix,
+        montant,
+      };
+    });
+
+    res.json({
+      proprietaire_id: req.user.id,
+      revenu_total: revenuTotal,
+      details,
+    });
+  } catch (error) {
+    res.status(500).json({ erreur: error.message });
+  }
+});
 
 //start server
 app.listen(port, () => {

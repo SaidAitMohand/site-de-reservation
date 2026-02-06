@@ -23,7 +23,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
       },
 
-      prix: {
+      prix: { // C'est le prix par journée
         type: DataTypes.FLOAT,
         allowNull: false,
       },
