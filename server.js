@@ -1,129 +1,61 @@
+// -------------------- IMPORTS --------------------
 const express = require("express");
-const app = express();
+const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const JWT_SECRET = "une_cle_secrete_tres_longue__pour_le_projet_12345";
-const cors = require("cors");
 const multer = require("multer");
 const path = require("path");
-app.use(cors());
-const port = 3000;
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, "public/uploads/");
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + "-" + file.originalname);
-    }
-});
-const upload = multer({ storage: storage });
-//middlewares
-app.use(express.static("public"));
+const { Sequelize, DataTypes, Op } = require("sequelize");
+
+// -------------------- INIT --------------------
+const app = express();
+const port = 4000;
+const JWT_SECRET = "une_cle_secrete_tres_longue__pour_le_projet_12345";
+
+// -------------------- MIDDLEWARE --------------------
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
 app.use(cors({
-    origin: 'http://localhost:5173',
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-    credentials: true
+  origin: "http://localhost:5173",
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  credentials: true
 }));
-app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
+
 app.use(express.static("public"));
-// Middleware de protection des routes
-const verifierRole = (rolesAutorises = []) => {
-    return (req, res, next) => {
-        // On récupère le token dans le header "Authorization"
-        const authHeader = req.headers["authorization"];
-        const token = authHeader && authHeader.split(" ")[1];
+app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 
-        if (!token) return res.status(401).json({ message: "Accès refusé " });
+// -------------------- MULTER --------------------
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "public/uploads/");
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname);
+  }
+});
+const upload = multer({ storage });
 
-        try {
-            const donneesBadge = jwt.verify(token, JWT_SECRET);
-            req.user = donneesBadge;
-
-            // Vérification du rôle
-            if (rolesAutorises.length && !rolesAutorises.includes(req.user.role)) {
-                return res
-                    .status(403)
-                    .json({ message: " Vous n'avez pas les droits nécessaires." });
-            }
-            next();
-        } catch (err) {
-            res.status(401).json({ message: "Badge invalide ou expiré." });
-        }
-    };
-};
-
-//ORM Sequelize configuration ----------
-const { Sequelize, DataTypes, Op } = require("sequelize"); // Op est obligatoire pour les dates( [Op.lt] et [Op.gt] )
+// -------------------- SEQUELIZE --------------------
 const sequelize = new Sequelize("site_reservation", "root", "", {
-    host: "localhost",
-    dialect: "mariadb",
-    dialectOptions: {
-        timezone: "Etc/GMT-2",
-    },
-    logging: false,
+  host: "localhost",
+  dialect: "mariadb",
+  dialectOptions: { timezone: "Etc/GMT-2" },
+  logging: false,
 });
 
-//Importation des models
+// -------------------- MODELS --------------------
 const utilisateurModel = require("./models/utilisateurs");
-const utilisateur = utilisateurModel(sequelize, DataTypes);
 const salleModel = require("./models/salles");
-const salle = salleModel(sequelize, DataTypes);
 const commentaireModel = require("./models/commentaires");
-const Commentaire = commentaireModel(sequelize, DataTypes);
 const reservationModel = require("./models/reservations");
+
+const utilisateur = utilisateurModel(sequelize, DataTypes);
+const salle = salleModel(sequelize, DataTypes);
+const Commentaire = commentaireModel(sequelize, DataTypes);
 const Reservation = reservationModel(sequelize, DataTypes);
 
-//Test de la connection a la DB
-sequelize
-    .authenticate()
-    .then(() => {
-        console.log("Connection has been established successfully.");
-    })
-    .catch((err) => {
-        console.error("Unable to connect to the database:", err);
-    });
-
-/*Fonction async pour gérer la synchronisation
-  
-    ps: ce code est a utiliser une seule fois pour creer les tables dans la BDD
-
- */
-
-async function synchroniserBaseDeDonnees() {
-    try {
-        // Désactiver temporairement les vérifications de clés étrangères
-        await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
-
-        // Nettoyer les références invalides avant sync
-        await sequelize.query(`
-      DELETE FROM salles 
-      WHERE proprietaire_id NOT IN (SELECT id FROM utilisateurs)
-      OR proprietaire_id IS NULL
-    `);
-
-        // Synchroniser avec alter
-        await sequelize.sync({ alter: true });
-
-        // Réactiver les vérifications
-        await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
-
-        console.log('Database synchronisee !!!');
-    } catch (err) {
-        console.error('Error creating database & tables:', err);
-        // S'assurer de réactiver les contraintes même en cas d'erreur
-        try {
-            await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
-        } catch (e) {}
-    }
-}
-
-// Appeler la fonction
-//synchroniserBaseDeDonnees();
-
-//relations squelize afin d'eviter le bug lors des jointures entres tables
-
+// -------------------- RELATIONS --------------------
 utilisateur.hasMany(salle, { foreignKey: "proprietaire_id" });
 salle.belongsTo(utilisateur, { foreignKey: "proprietaire_id" });
 
@@ -139,366 +71,226 @@ Reservation.belongsTo(utilisateur, { foreignKey: "utilisateur_id" });
 salle.hasMany(Reservation, { foreignKey: "salle_id" });
 Reservation.belongsTo(salle, { foreignKey: "salle_id" });
 
-//--------------------les routes----------------------------------------------------------------------------------------------------
-// page d'accueil
+// -------------------- MIDDLEWARE AUTH --------------------
+const verifierRole = (rolesAutorises = []) => {
+  return (req, res, next) => {
+    const authHeader = req.headers["authorization"];
+    const token = authHeader && authHeader.split(" ")[1];
 
-app.get("/", (req, res) => {
-    res.sendFile(__dirname + "/public/index.html");
-});
+    if (!token) return res.status(401).json({ message: "Accès refusé" });
 
-//inscription des utilisateurs
-app.post("/inscription", async(req, res) => {
     try {
-        const { name, username, password, role } = req.body;
+      const decoded = jwt.verify(token, JWT_SECRET);
+      req.user = decoded;
 
-        // Hachage du mot de passe (Sécurité)
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        const nouveau_utilisateur = await utilisateur.create({
-            name,
-            username,
-            password: hashedPassword,
-            role: role || "client",
-        });
-
-        res.status(201).json({ message: "Compte créé avec succès !" });
-    } catch (error) {
-        res.status(500).json({ erreur: error.message });
-    }
-});
-
-//Connexion
-app.post("/connexion", async(req, res) => {
-    try {
-        const { username, password } = req.body;
-
-        const user = await utilisateur.findOne({ where: { username } });
-        if (!user)
-            return res.status(404).json({ message: "Utilisateur introuvable." });
-
-        if (!user.status)
-            return res.status(403).json({ message: "Ce compte est désactivé." });
-
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch)
-            return res.status(401).json({ message: "Mot de passe incorrect." });
-
-        // Création du Token JWT
-        const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, {
-            expiresIn: "12h",
-        });
-
-        res.json({
-            message: "Connexion réussie !",
-            token: token,
-            role: user.role,
-            name: user.name,
-        });
-    } catch (error) {
-        res.status(500).json({ erreur: error.message });
-    }
-});
-
-//API utilisateurs
-app.get("/users", verifierRole(["admin"]), (req, res) => {
-    utilisateur
-        .findAll({ attributes: { exclude: ["password"] } })
-        .then((users) => {
-            res.json(users);
-        });
-});
-// API utilisateur par ID
-app.get("/users/:id", verifierRole(["admin", "proprietaire"]), (req, res) => {
-    utilisateur
-        .findByPk(req.params.id, { attributes: { exclude: ["password"] } })
-        .then((user) => {
-            if (!user) {
-                return res.status(404).json({ error: "utilisateur non trouvé" });
-            }
-            res.json(user);
-        });
-
-});
-
-// api qui retourne les utilisateur avec le role administrateur
-// Récupérer tous les administrateurs
-app.get("/users/admins", verifierRole(["admin"]), async (req, res) => {
-  try {
-    const administrateurs = await utilisateur.findAll({
-      where: { 
-        role: "admin" 
-      },
-      attributes: { 
-        exclude: ["password"] // Exclure le mot de passe pour la sécurité
+      if (rolesAutorises.length && !rolesAutorises.includes(req.user.role)) {
+        return res.status(403).json({ message: "Accès interdit" });
       }
+
+      next();
+    } catch (err) {
+      res.status(401).json({ message: "Token invalide ou expiré" });
+    }
+  };
+};
+
+// -------------------- ROUTES AUTH --------------------
+app.post("/inscription", async (req, res) => {
+  try {
+    const { name, username, password, role } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await utilisateur.create({
+      name,
+      username,
+      password: hashedPassword,
+      role: role || "client",
+      status: true
     });
-    
-    res.json(administrateurs);
-    console.log(administrateurs);
+
+    res.status(201).json({ message: "Compte créé avec succès !" });
   } catch (error) {
     res.status(500).json({ erreur: error.message });
   }
 });
 
+app.post("/connexion", async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const user = await utilisateur.findOne({ where: { username } });
 
-// +++ Récupérer toutes les salles pour la carte +++
-app.get("/all/salles/map", async(req, res) => {
-    try {
-        const toutesLesSalles = await salle.findAll({
-            attributes: ['id', 'nom', 'latitude', 'longitude', 'prix', 'capacite']
-        });
-        res.json(toutesLesSalles);
-    } catch (error) {
-        res.status(500).json({ erreur: error.message });
-    }
-});
+    if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
+    if (!user.status) return res.status(403).json({ message: "Compte désactivé" });
 
-// +++ API modifier l'etat d'un utilisateur +++
-app.put('/users/:id/status', async(req, res) => {
-    const { id } = req.params;
-    const { status } = req.body;
-    try {
-        await utilisateur.update({ status: status }, { where: { id: id } });
-        const updatedUser = await utilisateur.findByPk(id);
-        res.json(updatedUser);
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(401).json({ message: "Mot de passe incorrect" });
 
-    } catch (error) {
-        res.status(500).json({
-            erreur: error.message
-        });
-    };
-});
+    const token = jwt.sign(
+      { id: user.id, role: user.role },
+      JWT_SECRET,
+      { expiresIn: "12h" }
+    );
 
-// API pour les salles
-
-//route 1 : Ajouter une salle (POST)
-
-app.post("/owner/salles", verifierRole(["proprietaire"]), upload.array("photos", 5), async(req, res) => {
-    try {
-        console.log("Données reçues :", req.body); // Pour vérifier ce qui arrive
-        console.log("Fichiers reçus :", req.files);
-
-        const { nom, description, capacite, prix, latitude, longitude } = req.body;
-
-        // SÉCURITÉ : Vérifier que les champs obligatoires ne sont pas vides
-        if (!nom || !description || !latitude || !longitude) {
-            return res.status(400).json({ message: "Champs obligatoires manquants (nom, desc, gps...)" });
-        }
-
-        const nouvelleSalle = await salle.create({
-            nom: nom,
-            description: description,
-            capacite: parseInt(capacite) || 0,
-            prix: parseFloat(prix) || 0,
-            latitude: parseFloat(latitude),
-            longitude: parseFloat(longitude),
-            img: req.files && req.files.length > 0 ? `/uploads/${req.files[0].filename}` : null,
-            proprietaire_id: req.user.id, // Vient du token JWT
-            types: req.body.types // sera stocké tel quel si ton modèle le permet
-        });
-
-        res.status(201).json({ message: "Salle créée !", salle: nouvelleSalle });
-    } catch (error) {
-        console.error("ERREUR SQL :", error);
-        res.status(500).json({ erreur: error.message });
-    }
-});
-//Route2 : Voir les salles (GET)
-app.get("/owner/salles", verifierRole(["proprietaire"]), async(req, res) => {
-    try {
-        const salles = await salle.findAll({
-            where: { proprietaire_id: req.user.id },
-        });
-
-        res.json(salles);
-    } catch (error) {
-        res.status(500).json({ erreur: error.message });
-    }
-});
-//route tomporaire 
-app.get("/salles", async(req, res) => {
-    try {
-        const salles = await salle.findAll()
-        res.json(salles);
-    } catch (error) {
-        res.status(500).json({ erreur: error.message });
-    }
-});
-//route3 : Modifier une Salle avec son ID (PUT)
-
-app.put(
-    "/owner/salles/:id",
-    verifierRole(["proprietaire"]),
-    async(req, res) => {
-        try {
-            const salleExistante = await salle.findOne({
-                where: {
-                    id: req.params.id,
-                    proprietaire_id: req.user.id,
-                },
-            });
-
-            if (!salleExistante) {
-                return res
-                    .status(404)
-                    .json({ message: "Salle introuvable ou accès refusé" });
-            }
-
-            await salleExistante.update(req.body);
-
-            res.json({ message: "Salle modifiée avec succès" });
-        } catch (error) {
-            res.status(500).json({ erreur: error.message });
-        }
-    },
-);
-
-//route 4: supprimer une Salle avec son ID (DELETE)
-
-app.delete(
-    "/owner/salles/:id",
-    verifierRole(["proprietaire"]),
-    async(req, res) => {
-        try {
-            const salleExistante = await salle.findOne({
-                where: {
-                    id: req.params.id,
-                    proprietaire_id: req.user.id,
-                },
-            });
-
-            if (!salleExistante) {
-                return res
-                    .status(404)
-                    .json({ message: "Salle introuvable ou accès refusé" });
-            }
-
-            await salleExistante.destroy();
-
-            res.json({ message: "Salle supprimée avec succès" });
-        } catch (error) {
-            res.status(500).json({ erreur: error.message });
-        }
-    },
-);
-
-// +++ Récupérer toutes les salles pour la carte +++
-app.get("/all/salles/map", async(req, res) => {
-    try {
-        const toutesLesSalles = await salle.findAll({
-            attributes: ["id", "nom", "latitude", "longitude", "prix", "capacite"],
-        });
-        res.json(toutesLesSalles);
-    } catch (error) {
-        res.status(500).json({ erreur: error.message });
-    }
-});
-
-//Routes pour les commentaires
-
-//Un client ajoute un commentaire (POST )
-app.post("/commentaires/:salleId", verifierRole(["client"]),
-    async(req, res) => {
-        try {
-            const commentaire = await Commentaire.create({
-                contenu: req.body.contenu,
-                note: req.body.note,
-                utilisateur_id: req.user.id,
-                salle_id: req.params.salleId,
-            });
-
-            res.status(201).json(commentaire);
-        } catch (error) {
-            res.status(500).json({ erreur: error.message });
-        }
-    },
-);
-
-// Voir (GET) commentaires sur une salle par tous le monde (client-proprietaire-admin)
-app.get("/salles/:id/commentaires", async(req, res) => {
-    const commentaires = await Commentaire.findAll({
-        where: { salle_id: req.params.id },
+    res.json({
+      message: "Connexion réussie",
+      token,
+      role: user.role,
+      name: user.name
     });
-    res.json(commentaires);
+  } catch (error) {
+    res.status(500).json({ erreur: error.message });
+  }
 });
 
-// Un proprietaire voit (GET) les commentaires de SES salles
+// -------------------- ROUTES SALLES --------------------
+// Public pour dashboard client
+app.get("/salles", async (req, res) => {
+  try {
+    const toutesLesSalles = await salle.findAll();
+    res.json(toutesLesSalles);
+  } catch (error) {
+    res.status(500).json({ erreur: error.message });
+  }
+});
 
-app.get(
-    "/owner/commentaires",
-    verifierRole(["proprietaire"]),
-    async(req, res) => {
-        const commentaires = await Commentaire.findAll({
-            include: [{
-                model: salle,
-                where: { proprietaire_id: req.user.id },
-            }, ],
-        });
-        res.json(commentaires);
-    },
-);
+// Admin
+app.get("/admin/salles", verifierRole(["admin"]), async (req, res) => {
+  try {
+    const salles = await salle.findAll();
+    res.json(salles);
+  } catch (error) {
+    res.status(500).json({ erreur: error.message });
+  }
+});
 
-//Routes des reservations
-//Création d'une réservation de la part d'un client (POST)
-app.post(
-    "/reservations/:salleId",
-    verifierRole(["client"]),
-    async(req, res) => {
-        const { date_debut, date_fin } = req.body;
+app.get("/admin/users", verifierRole(["admin"]), async (req, res) => {
+  try {
+    const users = await utilisateur.findAll();
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ erreur: error.message });
+  }
+});
 
-        const conflit = await Reservation.findOne({
-            where: {
-                salle_id: req.params.salleId,
-                date_debut: {
-                    [Op.lt]: date_fin
-                },
-                date_fin: {
-                    [Op.gt]: date_debut
-                },
-            },
-        });
+app.put("/admin/users/:id/status", verifierRole(["admin"]), async (req, res) => {
+  try {
+    await utilisateur.update({ status: req.body.status }, { where: { id: req.params.id } });
+    res.json({ message: "Statut utilisateur mis à jour" });
+  } catch (error) {
+    res.status(500).json({ erreur: error.message });
+  }
+});
 
-        if (conflit) {
-            return res.status(400).json({ message: "Salle indisponible" });
-        }
-
-        const reservation = await Reservation.create({
-            utilisateur_id: req.user.id,
-            salle_id: req.params.salleId,
-            date_debut,
-            date_fin,
-        });
-
-        res.status(201).json(reservation);
-    },
-);
-
-//Un client consulte (GET) ses reservations
-
-app.get("/mes-reservations", verifierRole(["client"]), async(req, res) => {
-    const reservations = await Reservation.findAll({
-        where: { utilisateur_id: req.user.id },
+// -------------------- ROUTES RESERVATIONS --------------------
+// Client
+app.get("/client/mes-reservations", verifierRole(["client"]), async (req, res) => {
+  try {
+    const mesReservations = await Reservation.findAll({
+      where: { utilisateur_id: req.user.id },
+      include: [{ model: salle, attributes: ['nom', 'img', 'prix'] }],
+      order: [['createdAt', 'DESC']]
     });
-    res.json(reservations);
+    res.json(mesReservations);
+  } catch (error) {
+    res.status(500).json({ erreur: error.message });
+  }
 });
 
-// un proprietaire consulte (GET) les reservations de ses salles
+app.post("/reservations/:salleId", verifierRole(["client"]), async (req, res) => {
+  try {
+    const { date_debut, date_fin } = req.body;
 
-app.get(
-    "/owner/reservations",
-    verifierRole(["proprietaire"]),
-    async(req, res) => {
-        const reservations = await Reservation.findAll({
-            include: [{
-                model: salle,
-                where: { proprietaire_id: req.user.id },
-            }, ],
-        });
-        res.json(reservations);
-    },
-);
+    const conflit = await Reservation.findOne({
+      where: {
+        salle_id: req.params.salleId,
+        [Op.or]: [
+          { date_debut: { [Op.between]: [date_debut, date_fin] } },
+          { date_fin: { [Op.between]: [date_debut, date_fin] } }
+        ]
+      }
+    });
 
-//start server
-app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
+    if (conflit) return res.status(400).json({ message: "La salle est déjà occupée à ces dates" });
+
+    const reservation = await Reservation.create({
+      utilisateur_id: req.user.id,
+      salle_id: req.params.salleId,
+      date_debut,
+      date_fin,
+      status: "En attente"
+    });
+
+    res.status(201).json(reservation);
+  } catch (error) {
+    res.status(500).json({ erreur: error.message });
+  }
 });
+
+// -------------------- ROUTES COMMENTAIRES --------------------
+app.get("/commentaires/:salleId", async (req, res) => {
+  try {
+    const list = await Commentaire.findAll({
+      where: { salle_id: req.params.salleId },
+      include: [{ model: utilisateur, attributes: ['name'] }],
+      order: [['createdAt', 'DESC']]
+    });
+    res.json(list);
+  } catch (error) {
+    res.status(500).json({ erreur: error.message });
+  }
+});
+
+app.post("/commentaires", verifierRole(["client","proprietaire"]), async (req, res) => {
+  try {
+    const { contenu, salle_id } = req.body;
+    const nouveauCommentaire = await Commentaire.create({
+      contenu,
+      salle_id,
+      utilisateur_id: req.user.id
+    });
+    res.status(201).json(nouveauCommentaire);
+  } catch (error) {
+    res.status(500).json({ erreur: error.message });
+  }
+});
+
+// -------------------- ROUTES PROPRIETAIRE --------------------
+app.post("/owner/salles", verifierRole(["proprietaire"]), upload.array("photos", 5), async (req, res) => {
+  try {
+    const { nom, description, capacite, prix, latitude, longitude } = req.body;
+    const nouvelleSalle = await salle.create({
+      nom,
+      description,
+      capacite: parseInt(capacite) || 0,
+      prix: parseFloat(prix) || 0,
+      latitude: parseFloat(latitude),
+      longitude: parseFloat(longitude),
+      img: req.files?.length ? `/uploads/${req.files[0].filename}` : null,
+      proprietaire_id: req.user.id
+    });
+    res.status(201).json({ message: "Salle créée", salle: nouvelleSalle });
+  } catch (error) {
+    res.status(500).json({ erreur: error.message });
+  }
+});
+
+app.get("/owner/salles", verifierRole(["proprietaire"]), async (req, res) => {
+  try {
+    const salles = await salle.findAll({ where: { proprietaire_id: req.user.id } });
+    res.json(salles);
+  } catch (error) {
+    res.status(500).json({ erreur: error.message });
+  }
+});
+
+// -------------------- DB SYNC & START --------------------
+sequelize.authenticate()
+  .then(() => {
+    console.log("Connecté à la base de données");
+    return sequelize.sync({ alter: true });
+  })
+  .then(() => {
+    console.log("Base synchronisée");
+    app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
+  })
+  .catch(err => console.error("Erreur DB:", err));

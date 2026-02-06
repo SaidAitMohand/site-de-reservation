@@ -11,7 +11,7 @@ import ClientDashboard from "./Pages/ClientDashboard";
 import Admin from './pages/apiAdmin'
 import AdminLogin from "./Pages/AdminLogin.jsx";
 import AdminDashboard from "./Pages/AdminDashboard.jsx";
-import AdminForgotPassword from "./Pages/AdminForgotPassword.jsx";
+
 
 export default function App() {
   return (
@@ -30,7 +30,7 @@ export default function App() {
         <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/admin-dashboard" element={<AdminDashboard />} /> 
-        <Route path="/admin-forgot-password" element={<AdminForgotPassword />} />
+
 
         {/* --- PAGE 404 --- */}
         <Route path="*" element={

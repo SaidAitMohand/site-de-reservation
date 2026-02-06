@@ -1,31 +1,51 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 export default function AdminLogin() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  // --- LISTE DES ADMINS AUTORISÉS ---
-  const adminList = [
-    { email: "admin@roombook.dz", password: "admin2026", name: "SUPER-ADMIN" },
-    { email: "mounir@roombook.dz", password: "mounir2026", name: "MOUNIR B." },
-    { email: "sarah@roombook.dz", password: "sarah2026", name: "SARAH K." }
-  ];
+const handleLogin = async (e) => {
+  e.preventDefault();
+  setError("");
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    const auth = adminList.find(a => a.email === email && a.password === password);
-    
-    if (auth) {
-      localStorage.setItem("isAdmin", "true");
-      localStorage.setItem("adminName", auth.name);
-      navigate("/admin-dashboard"); 
-    } else {
-      setError("Identifiants incorrects. Accès refusé.");
+  try {
+    const res = await fetch("http://localhost:4000/connexion", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      setError(data.message || "Erreur de connexion");
+      return;
     }
-  };
+
+    // Vérifier rôle admin
+    if (data.role !== "admin") {
+      setError("Accès refusé : Vous n'êtes pas administrateur");
+      return;
+    }
+
+    // Stockage
+    localStorage.setItem("adminToken", data.token);
+    localStorage.setItem("isAdmin", "true");
+    localStorage.setItem("adminName", data.name);
+    localStorage.setItem("role", data.role);
+
+    // Navigation vers dashboard
+    navigate("/admin-dashboard");
+
+  } catch (err) {
+    console.error(err);
+    setError("Impossible de contacter le serveur");
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-[#F9F6F2] flex items-center justify-center px-6 text-[#0F0F0F]">
@@ -38,11 +58,11 @@ export default function AdminLogin() {
 
         <form onSubmit={handleLogin} className="space-y-8">
           <div>
-            <label className="text-[9px] uppercase font-bold tracking-widest opacity-50 block mb-2">Email de connexion</label>
+            <label className="text-[9px] uppercase font-bold tracking-widest opacity-50 block mb-2">Nom d'utilisateur</label>
             <input 
-              type="email" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text" 
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               required
               className="w-full border-b border-stone-200 py-3 focus:outline-none focus:border-[#B38B59] bg-transparent text-sm transition-all"
             />
@@ -70,15 +90,6 @@ export default function AdminLogin() {
           </button>
         </form>
 
-        {/* LIEN DE RÉCUPÉRATION AJOUTÉ ICI */}
-        <div className="mt-10 text-center border-t border-stone-50 pt-6">
-          <Link 
-            to="/admin-forgot-password" 
-            className="text-[9px] uppercase tracking-[0.2em] font-bold opacity-40 hover:opacity-100 hover:text-[#B38B59] transition-all"
-          >
-            Mot de passe oublié ? Récupération par Email
-          </Link>
-        </div>
       </div>
     </div>
   );
