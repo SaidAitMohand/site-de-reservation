@@ -62,6 +62,31 @@ export default function OwnerDashboard() {
     }
   };
 
+  const [myRooms, setMyRooms] = useState([
+    { 
+      id: 1, 
+      name: "Le Grand Ballroom", 
+      price: "12000",
+      revenue: "144.000",
+      types: ["Mariage", "Dîner"],
+      description: "Un espace luxueux avec lustres en cristal, sonorisation JBL intégrée.",
+      img: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=300",
+      bookings: [
+        { id: 101, date: "20 Mai 2024", time: "14:00 - 18:00", client: "Mariage Benali", status: "En attente" },
+        { id: 102, date: "22 Mai 2024", time: "09:00 - 12:00", client: "Séminaire Tech", status: "Confirmé" },
+      ],
+      reviews: [
+        { 
+          id: 1, 
+          user: "Amine K.", 
+          comment: "Superbe salle !", 
+          rating: 5,
+          ownerReply: "Merci beaucoup !" 
+        }
+      ]
+    }
+  ]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -106,6 +131,53 @@ export default function OwnerDashboard() {
     });
     return <Marker position={position} />;
   }
+  // --- STATISTIQUES ---
+  const totalRooms = myRooms.length;
+  const totalBookings = myRooms.reduce((acc, r) => acc + r.bookings.length, 0);
+  const totalRevenue = myRooms.reduce((acc, r) => acc + Number(r.revenue.replace(/\./g, '')), 0);
+  const allReviews = myRooms.flatMap(r => r.reviews);
+  const avgRating = allReviews.length > 0
+    ? (allReviews.reduce((acc, r) => acc + r.rating, 0) / allReviews.length).toFixed(1)
+    : 0;
+
+  // --- FONCTIONS ---
+  const handleSaveReply = (roomId, reviewId) => {
+    setMyRooms(myRooms.map(room => {
+      if (room.id === roomId) {
+        return {
+          ...room,
+          reviews: room.reviews.map(rev => 
+            rev.id === reviewId ? { ...rev, ownerReply: replyText.text } : rev
+          )
+        };
+      }
+      return room;
+    }));
+    setReplyText({ reviewId: null, text: "" });
+  };
+
+  const deleteReply = (roomId, reviewId) => {
+    if(window.confirm("Supprimer votre réponse ?")) {
+      setMyRooms(myRooms.map(room => room.id === roomId ? {
+        ...room, reviews: room.reviews.map(rev => rev.id === reviewId ? { ...rev, ownerReply: null } : rev)
+      } : room));
+    }
+  };
+
+  const updateBookingStatus = (roomId, bookingId, currentStatus) => {
+    const newStatus = currentStatus === "En attente" ? "Confirmé" : "En attente";
+    setMyRooms(myRooms.map(room => (room.id === roomId ? {
+      ...room, bookings: room.bookings.map(b => b.id === bookingId ? { ...b, status: newStatus } : b)
+    } : room)));
+  };
+
+  const deleteBooking = (roomId, bookingId) => {
+    if(window.confirm("Supprimer ce rendez-vous ?")) {
+      setMyRooms(myRooms.map(room => (room.id === roomId ? {
+        ...room, bookings: room.bookings.filter(b => b.id !== bookingId)
+      } : room)));
+    }
+  };
 
   const openEditModal = (room = null) => {
     setEditingRoom(room);
@@ -122,6 +194,7 @@ export default function OwnerDashboard() {
       <main className="max-w-7xl mx-auto px-6 pt-16">
         <Header userName={userName} onOpenSettings={() => setIsSettingsOpen(true)} onLogout={handleLogout} />
 
+        {/* --- TITRE ET BOUTON --- */}
         <div className="flex justify-between items-end mb-16 mt-10">
           <div>
             <h1 className="text-4xl font-serif italic">Espace Business</h1>
@@ -147,6 +220,27 @@ export default function OwnerDashboard() {
         </div>
 
         {/* --- TABLEAU DE SUIVI DES DEMANDES --- */}
+        {/* --- STATISTIQUES --- */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+          <div className="bg-white border border-stone-200 shadow-sm p-6 text-center">
+            <p className="text-[8px] uppercase opacity-40 mb-2">Mes Salles</p>
+            <p className="text-2xl font-bold">{totalRooms}</p>
+          </div>
+          <div className="bg-white border border-stone-200 shadow-sm p-6 text-center">
+            <p className="text-[8px] uppercase opacity-40 mb-2">Réservations Totales</p>
+            <p className="text-2xl font-bold">{totalBookings}</p>
+          </div>
+          <div className="bg-white border border-stone-200 shadow-sm p-6 text-center">
+            <p className="text-[8px] uppercase opacity-40 mb-2">Revenu Total</p>
+            <p className="text-2xl font-bold">💰 {totalRevenue.toLocaleString()} DA</p>
+          </div>
+          <div className="bg-white border border-stone-200 shadow-sm p-6 text-center">
+            <p className="text-[8px] uppercase opacity-40 mb-2">Avis Moyenne</p>
+            <p className="text-2xl font-bold">⭐ {avgRating}</p>
+          </div>
+        </div>
+
+        {/* --- SECTION SUIVI DES DEMANDES --- */}
         <section className="mb-20">
           <h2 className="text-xl font-serif italic mb-6 border-b border-stone-200 pb-2">Suivi des Demandes & RDV</h2>
           <div className="bg-white border border-stone-200 shadow-sm overflow-hidden">
@@ -168,6 +262,12 @@ export default function OwnerDashboard() {
                     <td className="p-6 text-center">
                       <span className={`px-4 py-1 rounded-full text-[8px] font-bold uppercase not-italic ${b.status === 'Confirmé' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>{b.status}</span>
                     </td>
+                    <td className="p-6 text-right space-x-6">
+                      <button onClick={() => updateBookingStatus(room.id, b.id, b.status)} className={`text-[9px] font-bold uppercase underline not-italic ${b.status === 'En attente' ? 'text-green-600' : 'text-orange-500'}`}>
+                        {b.status === 'En attente' ? 'Confirmer' : 'Suspendre'}
+                      </button>
+                      <button onClick={() => deleteBooking(room.id, b.id)} className="text-[9px] font-bold uppercase text-red-500">Supprimer</button>
+                    </td>
                   </tr>
                 )))}
               </tbody>
@@ -183,6 +283,11 @@ export default function OwnerDashboard() {
               <div className="flex flex-col md:flex-row">
                 <div className="md:w-80 h-64 overflow-hidden relative bg-stone-100">
                   <img src={room.img || "https://images.unsplash.com/photo-1497366216548-37526070297c?w=500"} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt="" />
+                <div className="md:w-80 h-64 overflow-hidden relative">
+                  <img src={room.img} className="w-full h-full object-cover" alt="" />
+                  <div className="absolute bottom-4 left-4 bg-[#0F0F0F] text-white px-3 py-1 text-[8px] font-bold uppercase tracking-widest">
+                    {room.bookings.length} Réservation(s)
+                  </div>
                 </div>
                 <div className="p-8 flex-grow">
                   <div className="flex justify-between items-start">
@@ -197,6 +302,8 @@ export default function OwnerDashboard() {
                     <div><span className="block text-[8px] uppercase opacity-40">Tarif</span><span className="text-lg font-serif italic text-[#B38B59]">{room.prix} DA</span></div>
                     <div><span className="block text-[8px] uppercase opacity-40">Capacité</span><span className="text-lg font-serif italic">{room.capacite} pers.</span></div>
                     <div><span className="block text-[8px] uppercase opacity-40">Position</span><span className="text-[10px] italic">{room.latitude?.toFixed(2)}, {room.longitude?.toFixed(2)}</span></div>
+                    <div><span className="block text-[8px] uppercase opacity-40">Tarif</span><span className="text-lg font-serif italic text-[#B38B59]">{room.price} DA</span></div>
+                    <div><span className="block text-[8px] uppercase opacity-40">Revenu Global</span><span className="text-lg font-serif italic">💰 {room.revenue} DA</span></div>
                   </div>
                 </div>
               </div>
@@ -233,6 +340,10 @@ export default function OwnerDashboard() {
               </div>
 
               {/* SECTION CARTE */}
+          <div className="bg-[#F9F6F2] w-full max-w-4xl p-12 shadow-2xl overflow-y-auto max-h-[90vh] relative text-[#0F0F0F]">
+            <h2 className="text-2xl font-serif italic mb-10">{editingRoom ? "Editer l'établissement" : "Nouvelle Salle"}</h2>
+            <form className="space-y-10" onSubmit={(e) => e.preventDefault()}>
+              {/* Types et Galerie */}
               <div className="space-y-4">
                 <label className="text-[10px] uppercase font-bold text-[#B38B59]">Géo-localisation (Cliquez sur la carte)</label>
                 <div className="h-64 w-full border border-stone-300 z-0">
@@ -242,7 +353,6 @@ export default function OwnerDashboard() {
                   </MapContainer>
                 </div>
               </div>
-
               <div className="space-y-4">
                 <label className="text-[10px] uppercase font-bold text-[#B38B59]">Types d'événements</label>
                 <div className="flex flex-wrap gap-2">
