@@ -23,7 +23,7 @@ export default function OwnerDashboard() {
   const [myRooms, setMyRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Localisation
+  // Localisation par défaut (Alger)
   const [position, setPosition] = useState({ lat: 36.737, lng: 3.088 });
   
   // Images
@@ -33,9 +33,10 @@ export default function OwnerDashboard() {
   // Types
   const [selectedTypes, setSelectedTypes] = useState([]);
 
-  // --- AUTHENTIFICATION ---
+  // --- CONFIGURATION ---
   const token = localStorage.getItem("token");
-  const userName = localStorage.getItem("userName") || "Utilisateur";
+  const userName = localStorage.getItem("userName") || "Propriétaire";
+  const API_URL = "http://localhost:3000";
   const eventOptions = ["Mariage", "Conférence", "Anniversaire", "Shooting", "Dîner", "Séminaire"];
 
   useEffect(() => {
@@ -48,7 +49,7 @@ export default function OwnerDashboard() {
 
   const fetchRooms = async () => {
     try {
-      const response = await fetch("http://localhost:3000/owner/salles", {
+      const response = await fetch(`${API_URL}/owner/salles`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (response.status === 401) {
@@ -58,7 +59,7 @@ export default function OwnerDashboard() {
       const data = await response.json();
       if (response.ok) setMyRooms(data);
     } catch (err) {
-      console.error("Erreur API:", err);
+      console.error("Erreur récupération salles:", err);
     } finally {
       setLoading(false);
     }
@@ -68,7 +69,6 @@ export default function OwnerDashboard() {
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
     setSelectedFiles(files);
-
     const filePreviews = files.map(file => URL.createObjectURL(file));
     setPreviews(filePreviews);
   };
@@ -92,41 +92,45 @@ export default function OwnerDashboard() {
     return null;
   }
 
-  // --- SOUMISSION DU FORMULAIRE ---
+  // --- SOUMISSION ---
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const formData = new FormData(e.target); // Récupère Nom, Prix, Capacité, Description automatiquement
+    const formData = new FormData(e.target);
 
-    // Ajout manuel des données complexes
+    // Ajout manuel des données que FormData ne capte pas tout seul
     formData.append("latitude", position.lat);
     formData.append("longitude", position.lng);
     formData.append("types", JSON.stringify(selectedTypes));
 
-    // Ajout des fichiers
+    // Ajout des fichiers (clé "photos" pour correspondre à upload.array("photos") dans server.js)
     selectedFiles.forEach((file) => {
       formData.append("photos", file);
     });
 
     try {
       const url = editingRoom 
-        ? `http://localhost:3000/owner/salles/${editingRoom.id}` 
-        : "http://localhost:3000/owner/salles";
+        ? `${API_URL}/owner/salles/${editingRoom.id}` 
+        : `${API_URL}/owner/salles`;
 
       const response = await fetch(url, {
         method: editingRoom ? "PUT" : "POST",
         headers: { "Authorization": `Bearer ${token}` },
-        body: formData // On envoie le FormData (ne pas mettre de Content-Type JSON)
+        body: formData 
       });
 
       if (response.ok) {
         setIsModalOpen(false);
         fetchRooms();
-        // Reset des états
+        // Reset
         setPreviews([]);
         setSelectedFiles([]);
+        setEditingRoom(null);
+      } else {
+        const errData = await response.json();
+        alert("Erreur : " + errData.message);
       }
     } catch (err) {
-      alert("Erreur de connexion au serveur");
+      alert("Impossible de contacter le serveur.");
     }
   };
 
@@ -134,11 +138,11 @@ export default function OwnerDashboard() {
     setEditingRoom(room);
     setSelectedTypes(room?.types || []);
     setPosition(room ? { lat: room.latitude, lng: room.longitude } : { lat: 36.737, lng: 3.088 });
-    setPreviews(room?.img ? [room.img] : []);
+    setPreviews(room?.img ? [`${API_URL}${room.img}`] : []);
     setIsModalOpen(true);
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center italic">Chargement...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center italic">Chargement du dashboard...</div>;
 
   return (
     <div className="min-h-screen bg-[#F9F6F2] text-[#0F0F0F] pb-20">
@@ -148,7 +152,7 @@ export default function OwnerDashboard() {
         <div className="flex justify-between items-end mb-16 mt-10">
           <div>
             <h1 className="text-4xl font-serif italic">Espace Business</h1>
-            <p className="text-[10px] uppercase tracking-widest text-[#B38B59] mt-2 font-bold">Bienvenue, {userName}</p>
+            <p className="text-[10px] uppercase tracking-widest text-[#B38B59] mt-2 font-bold">Gérez vos établissements de luxe</p>
           </div>
           <button onClick={() => openEditModal()} className="bg-[#0F0F0F] text-white px-8 py-4 text-[10px] uppercase font-bold tracking-widest hover:bg-[#B38B59] transition-all">
             + Publier une salle
@@ -158,9 +162,10 @@ export default function OwnerDashboard() {
         {/* --- LISTE DES SALLES --- */}
         <section className="space-y-8">
           <h2 className="text-xl font-serif italic border-b pb-2 mb-6">Vos Établissements</h2>
+          {myRooms.length === 0 && <p className="italic text-stone-400">Aucune salle publiée pour le moment.</p>}
           {myRooms.map(room => (
             <div key={room.id} className="bg-white border border-stone-200 flex flex-col md:flex-row shadow-sm">
-              <img src={room.img || "https://via.placeholder.com/300"} className="md:w-64 h-48 object-cover" alt="" />
+              <img src={room.img ? `${API_URL}${room.img}` : "https://via.placeholder.com/300"} className="md:w-64 h-48 object-cover" alt={room.nom} />
               <div className="p-6 flex-grow">
                 <div className="flex justify-between">
                   <h3 className="text-2xl font-serif">{room.nom}</h3>
@@ -168,8 +173,8 @@ export default function OwnerDashboard() {
                 </div>
                 <p className="text-xs text-stone-500 mt-2 italic line-clamp-2">{room.description}</p>
                 <div className="flex gap-8 mt-6 border-t pt-4">
-                  <div><span className="block text-[8px] uppercase opacity-40">Tarif</span><span className="text-lg font-serif italic text-[#B38B59]">{room.prix} DA</span></div>
-                  <div><span className="block text-[8px] uppercase opacity-40">Capacité</span><span className="text-lg font-serif italic">{room.capacite} pers.</span></div>
+                  <div><span className="block text-[8px] uppercase opacity-40">Tarif journalier</span><span className="text-lg font-serif italic text-[#B38B59]">{room.prix} DA</span></div>
+                  <div><span className="block text-[8px] uppercase opacity-40">Capacité max</span><span className="text-lg font-serif italic">{room.capacite} pers.</span></div>
                 </div>
               </div>
             </div>
@@ -200,6 +205,18 @@ export default function OwnerDashboard() {
                 </div>
               </div>
 
+              {/* Description (IMPORTANT : Résout l'erreur 400) */}
+              <div className="flex flex-col border-b border-stone-300 py-2">
+                <label className="text-[9px] uppercase font-bold opacity-40">Description détaillée</label>
+                <textarea 
+                  name="description" 
+                  defaultValue={editingRoom?.description} 
+                  className="bg-transparent outline-none italic text-lg h-24 resize-none" 
+                  placeholder="Décrivez le prestige de votre salle..."
+                  required 
+                />
+              </div>
+
               {/* Photos */}
               <div className="space-y-4">
                 <label className="text-[10px] uppercase font-bold text-[#B38B59]">Galerie Photos</label>
@@ -216,8 +233,8 @@ export default function OwnerDashboard() {
 
               {/* Carte */}
               <div className="space-y-4">
-                <label className="text-[10px] uppercase font-bold text-[#B38B59]">Localisation (Cliquez sur la carte)</label>
-                <div className="h-64 w-full border border-stone-300">
+                <label className="text-[10px] uppercase font-bold text-[#B38B59]">Localisation précise (Cliquez sur la carte)</label>
+                <div className="h-64 w-full border border-stone-300 overflow-hidden">
                   <MapContainer center={[position.lat, position.lng]} zoom={13} style={{ height: "100%", width: "100%" }}>
                     <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                     <LocationMarker />
@@ -226,23 +243,14 @@ export default function OwnerDashboard() {
                 </div>
               </div>
 
-              {/* Types d'événements */}
-              <div className="flex flex-wrap gap-2">
-                {eventOptions.map(t => (
-                  <button 
-                    key={t} 
-                    type="button" 
-                    onClick={() => setSelectedTypes(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t])}
-                    className={`px-4 py-2 text-[8px] uppercase font-bold border transition-all ${selectedTypes.includes(t) ? "bg-black text-white" : "border-stone-300"}`}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-
+              {/* Boutons d'action */}
               <div className="flex gap-4 pt-6">
-                <button type="submit" className="flex-grow bg-[#0F0F0F] text-white py-5 text-[10px] uppercase font-bold tracking-widest hover:bg-[#B38B59]">Enregistrer les données</button>
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-10 border border-black text-[10px] uppercase font-bold">Annuler</button>
+                <button type="submit" className="flex-grow bg-[#0F0F0F] text-white py-5 text-[10px] uppercase font-bold tracking-widest hover:bg-[#B38B59]">
+                  {editingRoom ? "Mettre à jour" : "Enregistrer les données"}
+                </button>
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-10 border border-black text-[10px] uppercase font-bold">
+                  Annuler
+                </button>
               </div>
             </form>
           </div>

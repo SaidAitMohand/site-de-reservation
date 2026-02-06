@@ -22,10 +22,22 @@ module.exports = (sequelize, DataTypes) => {
                 allowNull: false,
             },
 
+<<<<<<< HEAD
             prix: {
                 type: DataTypes.FLOAT,
                 allowNull: false,
             },
+=======
+      prix: { // C'est le prix par journée
+        type: DataTypes.FLOAT,
+        allowNull: false,
+      },
+      //les deux paramêtres pour la localisation
+      latitude: {
+        type: DataTypes.FLOAT,
+        allowNull: false,
+      },
+>>>>>>> 003833f7150eb5bc15146dfb009190a3ca54d75e
 
             // Paramètres pour la localisation
             latitude: {
