@@ -6,6 +6,7 @@ const JWT_SECRET = "une_cle_secrete_tres_longue__pour_le_projet_12345";
 const cors = require("cors");
 const multer = require("multer");
 const path = require("path");
+const router = express.Router();
 app.use(cors());
 const port = 3000;
 const storage = multer.diskStorage({
@@ -219,17 +220,20 @@ app.get("/users/:id", verifierRole(["admin", "proprietaire"]), (req, res) => {
         });
 
 });
-// +++ Récupérer toutes les salles pour la carte +++
-app.get("/all/salles/map", async(req, res) => {
+// Récupérer toutes les salles pour la carte client
+router.get('/salles/map', async(req, res) => {
     try {
-        const toutesLesSalles = await salle.findAll({
-            attributes: ['id', 'nom', 'latitude', 'longitude', 'prix', 'capacite']
+        const salles = await Salle.findAll({
+            attributes: ['id', 'nom', 'prix', 'capacite', 'latitude', 'longitude', 'img', 'description']
         });
-        res.json(toutesLesSalles);
+        res.status(200).json(salles);
     } catch (error) {
-        res.status(500).json({ erreur: error.message });
+        console.error("Erreur API Map:", error);
+        res.status(500).json({ message: "Erreur lors de la récupération des données de la carte" });
     }
 });
+
+module.exports = router;
 
 // +++ API modifier l'etat d'un utilisateur +++
 app.put('/users/:id/status', async(req, res) => {
