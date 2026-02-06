@@ -22,14 +22,58 @@ export default function AdminDashboard() {
   const [pwError, setPwError] = useState("");
   const [pwSuccess, setPwSuccess] = useState("");
 
-  
-  const [users, setUsers] = useState([
+  //chargement des utilisateurs
+  /*const [users, setUsers] = useState([
     { id: 1, name: "Amine K.", role: "Client", email: "amine@mail.com", active: true },
     { id: 2, name: "Karine K.", role: "Propriétaire", email: "karine@mail.com", active: true },
     { id: 3, name: "Hocine B.", role: "Propriétaire", email: "hocine@mail.com", active: false },
   ]);
+  */
+  const [users, setUsers] = useState([]);
+    useEffect(() => {
+        fetch('http://localhost:3000/users')
+        .then(res => {
+            if(!res.ok){
+                throw new Error('Erreur lors de la récupération des utilisateurs');
+            }
+            return res.json();
+        })
+        .then(data => {
+            setUsers(data);
+        })
+    }, []);
 
-  const [rooms, setRooms] = useState([
+
+  //fonction qui change l'etat de l'utilisateur
+  const switchEtat = (user) => {
+      const newStatus = (user.status === 1)? 0 : 1 
+
+      fetch(`http://localhost:3000/users/${user.id}/status`, {
+          method: 'PUT',
+          headers: {
+              'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ status: newStatus })
+          
+      })
+      .then(res => {
+      if (!res.ok) throw new Error('Erreur réseau');
+      return res.json(); // On retourne la promesse ici
+      })
+      .then((data) => {
+          // 'data' contient maintenant l'utilisateur mis à jour renvoyé par le backend
+          setUsers(prev =>
+              prev.map(u => (u.id == data.id) ? { ...u, status: newStatus } : u)
+          );
+      })
+      .catch(error => {
+          console.error('Erreur lors de la mise à jour du statut:', error);
+      });
+
+      console.log(`Changement de statut pour l'utilisateur ${user.id} vers ${newStatus}`);
+  };
+
+  /*const [rooms, setRooms] = useState([
     { 
       id: 101, 
       name: "Le Grand Ballroom", 
@@ -56,7 +100,22 @@ export default function AdminDashboard() {
       images: ["https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&w=600"],
       description: "Petite salle de réunion sans photos vérifiées."
     },
-  ]);
+  ]);*/
+  //fetch des salles depuis le backend
+  const [rooms, setRooms] = useState([]);
+  useEffect(() => {
+    fetch('http://localhost:3000/salles')
+    .then(res=>{
+      if(!res.ok){
+        throw new Error('Erreur lors de la récupération des salles');
+      }
+      return res.json();
+    })
+    .then(data => {
+      setRooms(data);
+    })
+  }, []);
+  console.log("voici les rooms : ", rooms );
 
   const [reviews, setReviews] = useState([
     { id: 1, user: "Amine K.", room: "Le Grand Ballroom", comment: "Superbe expérience !", rating: 5 },
@@ -193,7 +252,7 @@ export default function AdminDashboard() {
                       <tr key={user.id} className="hover:bg-stone-50/50 transition-colors">
                         <td className="p-5">
                           <p className="text-sm font-bold">{user.name}</p>
-                          <p className="text-[10px] opacity-40 italic mt-0.5">{user.role} — {user.email}</p>
+                          <p className="text-[10px] opacity-40 italic mt-0.5">{user.role} — {user.username}</p>
                         </td>
                         <td className="p-5">
                           <span className={`text-[9px] font-bold uppercase px-3 py-1 rounded-full ${user.active ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
@@ -202,10 +261,15 @@ export default function AdminDashboard() {
                         </td>
                         <td className="p-5 text-right">
                           <button 
+
                             onClick={() => toggleUserStatus(user.id)}
                             className={`text-[9px] font-bold uppercase border px-4 py-2 transition-all tracking-widest ${user.active ? 'border-black text-black hover:bg-black hover:text-white' : 'border-green-600 text-green-600 hover:bg-green-600 hover:text-white'}`}
+
+                            onClick={() => switchEtat(user)}
+                            className={`text-[9px] font-bold uppercase px-4 py-2 border transition-all tracking-widest ${user.status ? 'border-red-100 text-red-500 hover:bg-red-50' : 'border-green-100 text-green-500 hover:bg-green-50'}`}
+
                           >
-                            {user.active ? "Bannir" : "Réactiver"}
+                            {user.status ? "Bannir" : "Réactiver"}
                           </button>
                         </td>
                       </tr>

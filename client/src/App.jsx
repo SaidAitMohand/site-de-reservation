@@ -8,7 +8,7 @@ import Register from "./Pages/Register";
 import OwnerDashboard from "./Pages/OwnerDashboard"; 
 import ClientDashboard from "./Pages/ClientDashboard";
 
-
+import Admin from './pages/apiAdmin'
 import AdminLogin from "./Pages/AdminLogin.jsx";
 import AdminDashboard from "./Pages/AdminDashboard.jsx";
 import AdminForgotPassword from "./Pages/AdminForgotPassword.jsx";
@@ -28,6 +28,7 @@ export default function App() {
         {/* --- PARTIE ADMINISTRATEUR --- */}
         {/* On utilise des URLs bien distinctes pour éviter les conflits */}
         <Route path="/admin-login" element={<AdminLogin />} />
+        <Route path="/admin" element={<Admin />} />
         <Route path="/admin-dashboard" element={<AdminDashboard />} /> 
         <Route path="/admin-forgot-password" element={<AdminForgotPassword />} />
 

@@ -34,8 +34,6 @@ function ApiAdmin() {
         .then((data) => {
             // 'data' contient maintenant l'utilisateur mis à jour renvoyé par le backend
             console.log("Données reçues :", data);
-            console.log(data.status);
-            console.log(user.status);
 
             setUsers(prev =>
                 prev.map(u => (u.id == data.id) ? { ...u, status: newStatus } : u)
