@@ -8,43 +8,44 @@ export default function AdminLogin() {
   const navigate = useNavigate();
 
 const handleLogin = async (e) => {
-    e.preventDefault();
-    setError(""); // On réinitialise l'erreur
+  e.preventDefault();
+  setError("");
 
-    try {
-      // 1. Appel de la BONNE route : /connexion
-      const res = await fetch("http://localhost:4000/connexion", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
+  try {
+    const res = await fetch("http://localhost:4000/connexion", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
 
-      const data = await res.json();
+    const data = await res.json();
 
-      if (!res.ok) {
-        setError(data.message || "Erreur de connexion");
-        return;
-      }
-
-      // 2. Vérification du rôle : Est-ce bien un admin ?
-      if (data.role !== "admin") {
-        setError("Accès refusé : Vous n'êtes pas administrateur");
-        return;
-      }
-
-      // 3. Stockage cohérent pour le dashboard
-      // On utilise "token" car c'est le standard attendu par ton middleware
-      localStorage.setItem("token", data.token); 
-      localStorage.setItem("isAdmin", "true");
-      localStorage.setItem("adminName", data.name);
-      localStorage.setItem("role", data.role);
-
-      navigate("/admin-dashboard");
-    } catch (err) {
-      console.error(err);
-      setError("Impossible de contacter le serveur");
+    if (!res.ok) {
+      setError(data.message || "Erreur de connexion");
+      return;
     }
-  };
+
+    // Vérifier rôle admin
+    if (data.role !== "admin") {
+      setError("Accès refusé : Vous n'êtes pas administrateur");
+      return;
+    }
+
+    // Stockage
+    localStorage.setItem("adminToken", data.token);
+    localStorage.setItem("isAdmin", "true");
+    localStorage.setItem("adminName", data.name);
+    localStorage.setItem("role", data.role);
+
+    // Navigation vers dashboard
+    navigate("/admin-dashboard");
+
+  } catch (err) {
+    console.error(err);
+    setError("Impossible de contacter le serveur");
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-[#F9F6F2] flex items-center justify-center px-6 text-[#0F0F0F]">

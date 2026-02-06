@@ -1,231 +1,175 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Header from "../Components/Header";
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+
+// Fix pour les icônes de marqueurs Leaflet
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+});
 
 export default function OwnerDashboard() {
+  const navigate = useNavigate();
+
+  // --- ÉTATS (STATES) ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
+  const [myRooms, setMyRooms] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Localisation
+  const [position, setPosition] = useState({ lat: 36.737, lng: 3.088 });
+  
+  // Images
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const [previews, setPreviews] = useState([]);
-  const [replyText, setReplyText] = useState({ reviewId: null, text: "" });
+  
+  // Types
   const [selectedTypes, setSelectedTypes] = useState([]);
+
+  // --- AUTHENTIFICATION ---
+  const token = localStorage.getItem("token");
+  const userName = localStorage.getItem("userName") || "Utilisateur";
   const eventOptions = ["Mariage", "Conférence", "Anniversaire", "Shooting", "Dîner", "Séminaire"];
 
-  const [myRooms, setMyRooms] = useState([
-    { 
-      id: 1, 
-      name: "Le Grand Ballroom", 
-      price: "12000",
-      revenue: "144.000",
-      types: ["Mariage", "Dîner"],
-      description: "Un espace luxueux avec lustres en cristal, sonorisation JBL intégrée.",
-      img: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=300",
-      bookings: [
-        { id: 101, date: "20 Mai 2024", time: "14:00 - 18:00", client: "Mariage Benali", status: "En attente" },
-        { id: 102, date: "22 Mai 2024", time: "09:00 - 12:00", client: "Séminaire Tech", status: "Confirmé" },
-      ],
-      reviews: [
-        { 
-          id: 1, 
-          user: "Amine K.", 
-          comment: "Superbe salle !", 
-          rating: 5,
-          ownerReply: "Merci beaucoup !" 
-        }
-      ]
+  useEffect(() => {
+    if (!token) {
+      navigate("/login");
+    } else {
+      fetchRooms();
     }
-  ]);
+  }, [token]);
 
-  // --- STATISTIQUES ---
-  const totalRooms = myRooms.length;
-  const totalBookings = myRooms.reduce((acc, r) => acc + r.bookings.length, 0);
-  const totalRevenue = myRooms.reduce((acc, r) => acc + Number(r.revenue.replace(/\./g, '')), 0);
-  const allReviews = myRooms.flatMap(r => r.reviews);
-  const avgRating = allReviews.length > 0
-    ? (allReviews.reduce((acc, r) => acc + r.rating, 0) / allReviews.length).toFixed(1)
-    : 0;
-
-  // --- FONCTIONS ---
-  const handleSaveReply = (roomId, reviewId) => {
-    setMyRooms(myRooms.map(room => {
-      if (room.id === roomId) {
-        return {
-          ...room,
-          reviews: room.reviews.map(rev => 
-            rev.id === reviewId ? { ...rev, ownerReply: replyText.text } : rev
-          )
-        };
+  const fetchRooms = async () => {
+    try {
+      const response = await fetch("http://localhost:3000/owner/salles", {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (response.status === 401) {
+        localStorage.clear();
+        navigate("/login");
       }
-      return room;
-    }));
-    setReplyText({ reviewId: null, text: "" });
-  };
-
-  const deleteReply = (roomId, reviewId) => {
-    if(window.confirm("Supprimer votre réponse ?")) {
-      setMyRooms(myRooms.map(room => room.id === roomId ? {
-        ...room, reviews: room.reviews.map(rev => rev.id === reviewId ? { ...rev, ownerReply: null } : rev)
-      } : room));
+      const data = await response.json();
+      if (response.ok) setMyRooms(data);
+    } catch (err) {
+      console.error("Erreur API:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const updateBookingStatus = (roomId, bookingId, currentStatus) => {
-    const newStatus = currentStatus === "En attente" ? "Confirmé" : "En attente";
-    setMyRooms(myRooms.map(room => (room.id === roomId ? {
-      ...room, bookings: room.bookings.map(b => b.id === bookingId ? { ...b, status: newStatus } : b)
-    } : room)));
+  // --- GESTION DES IMAGES ---
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    setSelectedFiles(files);
+
+    const filePreviews = files.map(file => URL.createObjectURL(file));
+    setPreviews(filePreviews);
   };
 
-  const deleteBooking = (roomId, bookingId) => {
-    if(window.confirm("Supprimer ce rendez-vous ?")) {
-      setMyRooms(myRooms.map(room => (room.id === roomId ? {
-        ...room, bookings: room.bookings.filter(b => b.id !== bookingId)
-      } : room)));
+  // --- LOGIQUE CARTE ---
+  function LocationMarker() {
+    useMapEvents({
+      click(e) { setPosition(e.latlng); },
+    });
+    return <Marker position={position} />;
+  }
+
+  function MapViewFix({ center }) {
+    const map = useMap();
+    useEffect(() => {
+      setTimeout(() => {
+        map.setView([center.lat, center.lng]);
+        map.invalidateSize();
+      }, 300);
+    }, [center, map]);
+    return null;
+  }
+
+  // --- SOUMISSION DU FORMULAIRE ---
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target); // Récupère Nom, Prix, Capacité, Description automatiquement
+
+    // Ajout manuel des données complexes
+    formData.append("latitude", position.lat);
+    formData.append("longitude", position.lng);
+    formData.append("types", JSON.stringify(selectedTypes));
+
+    // Ajout des fichiers
+    selectedFiles.forEach((file) => {
+      formData.append("photos", file);
+    });
+
+    try {
+      const url = editingRoom 
+        ? `http://localhost:3000/owner/salles/${editingRoom.id}` 
+        : "http://localhost:3000/owner/salles";
+
+      const response = await fetch(url, {
+        method: editingRoom ? "PUT" : "POST",
+        headers: { "Authorization": `Bearer ${token}` },
+        body: formData // On envoie le FormData (ne pas mettre de Content-Type JSON)
+      });
+
+      if (response.ok) {
+        setIsModalOpen(false);
+        fetchRooms();
+        // Reset des états
+        setPreviews([]);
+        setSelectedFiles([]);
+      }
+    } catch (err) {
+      alert("Erreur de connexion au serveur");
     }
   };
 
   const openEditModal = (room = null) => {
     setEditingRoom(room);
-    setPreviews(room ? [room.img] : []);
-    setSelectedTypes(room ? room.types : []);
+    setSelectedTypes(room?.types || []);
+    setPosition(room ? { lat: room.latitude, lng: room.longitude } : { lat: 36.737, lng: 3.088 });
+    setPreviews(room?.img ? [room.img] : []);
     setIsModalOpen(true);
   };
 
+  if (loading) return <div className="min-h-screen flex items-center justify-center italic">Chargement...</div>;
+
   return (
-    <div className="min-h-screen bg-[#F9F6F2] font-sans pb-20">
+    <div className="min-h-screen bg-[#F9F6F2] text-[#0F0F0F] pb-20">
       <main className="max-w-7xl mx-auto px-6 pt-16">
-        <Header userName="KABICHE Karine" onOpenSettings={() => setIsSettingsOpen(true)} />
+        <Header userName={userName} onOpenSettings={() => setIsSettingsOpen(true)} onLogout={() => { localStorage.clear(); navigate("/login"); }} />
 
-        {/* --- TITRE ET BOUTON --- */}
         <div className="flex justify-between items-end mb-16 mt-10">
-          <h1 className="text-4xl font-serif italic text-[#0F0F0F]">Votre Espace Client</h1>
-          <button onClick={() => openEditModal()} className="bg-[#0F0F0F] text-white px-8 py-4 text-[10px] uppercase font-bold tracking-widest hover:bg-[#B38B59] transition-all">+ Nouvelle Salle</button>
+          <div>
+            <h1 className="text-4xl font-serif italic">Espace Business</h1>
+            <p className="text-[10px] uppercase tracking-widest text-[#B38B59] mt-2 font-bold">Bienvenue, {userName}</p>
+          </div>
+          <button onClick={() => openEditModal()} className="bg-[#0F0F0F] text-white px-8 py-4 text-[10px] uppercase font-bold tracking-widest hover:bg-[#B38B59] transition-all">
+            + Publier une salle
+          </button>
         </div>
-
-        {/* --- STATISTIQUES --- */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-          <div className="bg-white border border-stone-200 shadow-sm p-6 text-center">
-            <p className="text-[8px] uppercase opacity-40 mb-2">Mes Salles</p>
-            <p className="text-2xl font-bold">{totalRooms}</p>
-          </div>
-          <div className="bg-white border border-stone-200 shadow-sm p-6 text-center">
-            <p className="text-[8px] uppercase opacity-40 mb-2">Réservations Totales</p>
-            <p className="text-2xl font-bold">{totalBookings}</p>
-          </div>
-          <div className="bg-white border border-stone-200 shadow-sm p-6 text-center">
-            <p className="text-[8px] uppercase opacity-40 mb-2">Revenu Total</p>
-            <p className="text-2xl font-bold">💰 {totalRevenue.toLocaleString()} DA</p>
-          </div>
-          <div className="bg-white border border-stone-200 shadow-sm p-6 text-center">
-            <p className="text-[8px] uppercase opacity-40 mb-2">Avis Moyenne</p>
-            <p className="text-2xl font-bold">⭐ {avgRating}</p>
-          </div>
-        </div>
-
-        {/* --- SECTION SUIVI DES DEMANDES --- */}
-        <section className="mb-20">
-          <h2 className="text-xl font-serif italic mb-6 border-b border-stone-200 pb-2">Suivi des Demandes & Rendez-vous</h2>
-          <div className="bg-white border border-stone-200 shadow-sm overflow-hidden">
-            <table className="w-full text-left">
-              <thead className="bg-[#0F0F0F] text-white text-[9px] uppercase tracking-widest">
-                <tr>
-                  <th className="p-6">Date & Heure</th>
-                  <th className="p-6">Espace</th>
-                  <th className="p-6">Client</th>
-                  <th className="p-6 text-center">État</th>
-                  <th className="p-6 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stone-100 italic">
-                {myRooms.flatMap(room => room.bookings.map(b => (
-                  <tr key={b.id} className="text-xs hover:bg-stone-50 transition-colors">
-                    <td className="p-6">
-                      <span className="block font-bold not-italic">{b.date}</span>
-                      <span className="text-[10px] opacity-50">{b.time}</span>
-                    </td>
-                    <td className="p-6 font-bold uppercase not-italic text-[#B38B59]">{room.name}</td>
-                    <td className="p-6">{b.client}</td>
-                    <td className="p-6 text-center">
-                      <span className={`px-4 py-1 rounded-full text-[8px] font-bold uppercase not-italic ${b.status === 'Confirmé' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>{b.status}</span>
-                    </td>
-                    <td className="p-6 text-right space-x-6">
-                      <button onClick={() => updateBookingStatus(room.id, b.id, b.status)} className={`text-[9px] font-bold uppercase underline not-italic ${b.status === 'En attente' ? 'text-green-600' : 'text-orange-500'}`}>
-                        {b.status === 'En attente' ? 'Confirmer' : 'Suspendre'}
-                      </button>
-                      <button onClick={() => deleteBooking(room.id, b.id)} className="text-[9px] font-bold uppercase text-red-500">Supprimer</button>
-                    </td>
-                  </tr>
-                )))}
-              </tbody>
-            </table>
-          </div>
-        </section>
 
         {/* --- LISTE DES SALLES --- */}
-        <section className="space-y-12">
+        <section className="space-y-8">
+          <h2 className="text-xl font-serif italic border-b pb-2 mb-6">Vos Établissements</h2>
           {myRooms.map(room => (
-            <div key={room.id} className="bg-white border border-stone-200 overflow-hidden">
-              <div className="flex flex-col md:flex-row">
-                <div className="md:w-80 h-64 overflow-hidden relative">
-                  <img src={room.img} className="w-full h-full object-cover" alt="" />
-                  <div className="absolute bottom-4 left-4 bg-[#0F0F0F] text-white px-3 py-1 text-[8px] font-bold uppercase tracking-widest">
-                    {room.bookings.length} Réservation(s)
-                  </div>
+            <div key={room.id} className="bg-white border border-stone-200 flex flex-col md:flex-row shadow-sm">
+              <img src={room.img || "https://via.placeholder.com/300"} className="md:w-64 h-48 object-cover" alt="" />
+              <div className="p-6 flex-grow">
+                <div className="flex justify-between">
+                  <h3 className="text-2xl font-serif">{room.nom}</h3>
+                  <button onClick={() => openEditModal(room)} className="text-[9px] font-bold uppercase border-b border-black">Modifier</button>
                 </div>
-                <div className="p-8 flex-grow">
-                  <div className="flex justify-between items-start">
-                    <h3 className="text-2xl font-serif">{room.name}</h3>
-                    <div className="flex gap-4">
-                        <button onClick={() => openEditModal(room)} className="text-[9px] font-bold uppercase border-b border-black">Modifier</button>
-                        <button onClick={() => { if(window.confirm("Supprimer?")) setMyRooms(myRooms.filter(r => r.id !== room.id)) }} className="text-[9px] font-bold uppercase text-red-500">Retirer</button>
-                    </div>
-                  </div>
-                  <div className="flex gap-8 mt-10 border-t pt-6">
-                    <div><span className="block text-[8px] uppercase opacity-40">Tarif</span><span className="text-lg font-serif italic text-[#B38B59]">{room.price} DA</span></div>
-                    <div><span className="block text-[8px] uppercase opacity-40">Revenu Global</span><span className="text-lg font-serif italic">💰 {room.revenue} DA</span></div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Modération & Interactions */}
-              <div className="bg-stone-50 p-8 border-t border-stone-100">
-                <h4 className="text-[10px] uppercase font-bold mb-6 opacity-40 italic">Modération & Interactions</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {room.reviews.map(rev => (
-                    <div key={rev.id} className="bg-white p-5 border border-stone-200 relative group">
-                      <button onClick={() => {if(window.confirm("Supprimer l'avis client ?")) setMyRooms(myRooms.map(r => r.id === room.id ? {...r, reviews: r.reviews.filter(re => re.id !== rev.id)} : r))}} className="absolute top-2 right-2 text-red-400 opacity-0 group-hover:opacity-100 text-[8px] uppercase font-bold transition-opacity">Supprimer l'avis</button>
-                      <p className="text-sm italic mb-2">"{rev.comment}"</p>
-                      
-                      {rev.ownerReply && replyText.reviewId !== rev.id ? (
-                        <div className="mt-4 p-3 bg-[#F9F6F2] border-l-2 border-[#B38B59] relative group/reply">
-                          <p className="text-[8px] uppercase font-bold text-[#B38B59] mb-1">Votre réponse :</p>
-                          <p className="text-xs italic text-stone-600">"{rev.ownerReply}"</p>
-                          <div className="flex gap-3 mt-2 opacity-0 group-hover/reply:opacity-100 transition-opacity">
-                            <button onClick={() => setReplyText({ reviewId: rev.id, text: rev.ownerReply })} className="text-[8px] font-bold uppercase text-stone-400 hover:text-black">Modifier</button>
-                            <button onClick={() => deleteReply(room.id, rev.id)} className="text-[8px] font-bold uppercase text-red-400">Supprimer</button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="mt-4">
-                          {replyText.reviewId === rev.id ? (
-                            <div className="flex flex-col gap-2">
-                              <textarea 
-                                onChange={(e) => setReplyText({ ...replyText, text: e.target.value })} 
-                                value={replyText.text} 
-                                className="w-full p-2 text-xs border border-stone-200 outline-none italic bg-[#F9F6F2]" 
-                                placeholder="Écrire votre réponse..."
-                              />
-                              <div className="flex gap-2">
-                                <button onClick={() => handleSaveReply(room.id, rev.id)} className="bg-black text-white text-[8px] py-2 px-4 uppercase font-bold">Enregistrer</button>
-                                <button onClick={() => setReplyText({ reviewId: null, text: "" })} className="text-[8px] uppercase font-bold opacity-50">Annuler</button>
-                              </div>
-                            </div>
-                          ) : (
-                            <button onClick={() => setReplyText({ reviewId: rev.id, text: "" })} className="text-[9px] font-bold uppercase underline">Répondre</button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                <p className="text-xs text-stone-500 mt-2 italic line-clamp-2">{room.description}</p>
+                <div className="flex gap-8 mt-6 border-t pt-4">
+                  <div><span className="block text-[8px] uppercase opacity-40">Tarif</span><span className="text-lg font-serif italic text-[#B38B59]">{room.prix} DA</span></div>
+                  <div><span className="block text-[8px] uppercase opacity-40">Capacité</span><span className="text-lg font-serif italic">{room.capacite} pers.</span></div>
                 </div>
               </div>
             </div>
@@ -233,69 +177,74 @@ export default function OwnerDashboard() {
         </section>
       </main>
 
-      {/* --- MODAL AJOUT/EDITION --- */}
+      {/* --- MODAL AJOUT / ÉDITION --- */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0F0F0F]/90 backdrop-blur-sm p-4">
-          <div className="bg-[#F9F6F2] w-full max-w-4xl p-12 shadow-2xl overflow-y-auto max-h-[90vh] relative text-[#0F0F0F]">
-            <h2 className="text-2xl font-serif italic mb-10">{editingRoom ? "Editer l'établissement" : "Nouvelle Salle"}</h2>
-            <form className="space-y-10" onSubmit={(e) => e.preventDefault()}>
-              {/* Types et Galerie */}
-              <div className="space-y-4">
-                <label className="text-[10px] uppercase font-bold text-[#B38B59]">Types d'événements autorisés</label>
-                <div className="flex flex-wrap gap-2">
-                  {eventOptions.map(t => (
-                    <button key={t} type="button" onClick={() => setSelectedTypes(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t])} className={`px-4 py-2 text-[8px] uppercase font-bold border ${selectedTypes.includes(t) ? "bg-black text-white" : "border-stone-300"}`}>{t}</button>
-                  ))}
+          <div className="bg-[#F9F6F2] w-full max-w-4xl p-10 overflow-y-auto max-h-[90vh] shadow-2xl relative">
+            <h2 className="text-2xl font-serif italic mb-10">{editingRoom ? "Modifier l'espace" : "Nouveau Référencement"}</h2>
+            
+            <form onSubmit={handleSubmit} className="space-y-8">
+              {/* Infos de base */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="flex flex-col border-b border-stone-300 py-2">
+                  <label className="text-[9px] uppercase font-bold opacity-40">Nom commercial</label>
+                  <input name="nom" defaultValue={editingRoom?.nom} className="bg-transparent outline-none italic text-lg" required />
+                </div>
+                <div className="flex flex-col border-b border-stone-300 py-2">
+                  <label className="text-[9px] uppercase font-bold opacity-40">Tarif (DA)</label>
+                  <input name="prix" type="number" defaultValue={editingRoom?.prix} className="bg-transparent outline-none font-bold text-lg" required />
+                </div>
+                <div className="flex flex-col border-b border-stone-300 py-2">
+                  <label className="text-[9px] uppercase font-bold opacity-40">Capacité</label>
+                  <input name="capacite" type="number" defaultValue={editingRoom?.capacite} className="bg-transparent outline-none font-bold text-lg" required />
                 </div>
               </div>
+
+              {/* Photos */}
               <div className="space-y-4">
-                <label className="text-[10px] uppercase font-bold text-[#B38B59]">Galerie Photos (Upload)</label>
+                <label className="text-[10px] uppercase font-bold text-[#B38B59]">Galerie Photos</label>
                 <div className="flex flex-wrap gap-4">
-                  {previews.map((src, i) => (
-                    <div key={i} className="w-24 h-24 border relative group">
-                      <img src={src} className="w-full h-full object-cover" alt="" />
-                      <button onClick={() => setPreviews(previews.filter((_, idx) => idx !== i))} className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 text-[8px] font-bold uppercase">Supprimer</button>
-                    </div>
-                  ))}
-                  <label className="w-24 h-24 border-2 border-dashed border-stone-300 flex items-center justify-center cursor-pointer text-2xl opacity-20 hover:opacity-100 transition-all">
-                    + <input type="file" multiple onChange={(e) => setPreviews([...previews, URL.createObjectURL(e.target.files[0])])} className="hidden" />
+                  <label className="w-24 h-24 border-2 border-dashed border-stone-300 flex flex-col items-center justify-center cursor-pointer hover:border-black">
+                    <span className="text-xl">+</span>
+                    <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageChange} />
                   </label>
+                  {previews.map((src, i) => (
+                    <img key={i} src={src} className="w-24 h-24 object-cover border border-stone-200" alt="preview" />
+                  ))}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="flex flex-col border-b border-stone-300 py-2"><label className="text-[9px] uppercase font-bold opacity-40">Nom de la salle</label><input type="text" defaultValue={editingRoom?.name} className="bg-transparent outline-none italic text-lg" /></div>
-                <div className="flex flex-col border-b border-stone-300 py-2"><label className="text-[9px] uppercase font-bold opacity-40">Tarif Journalier (DA)</label><input type="number" defaultValue={editingRoom?.price} className="bg-transparent outline-none font-bold text-lg" /></div>
+              {/* Carte */}
+              <div className="space-y-4">
+                <label className="text-[10px] uppercase font-bold text-[#B38B59]">Localisation (Cliquez sur la carte)</label>
+                <div className="h-64 w-full border border-stone-300">
+                  <MapContainer center={[position.lat, position.lng]} zoom={13} style={{ height: "100%", width: "100%" }}>
+                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                    <LocationMarker />
+                    <MapViewFix center={position} />
+                  </MapContainer>
+                </div>
               </div>
 
-              <div className="flex flex-col border-b border-stone-300 py-2">
-                <label className="text-[9px] uppercase font-bold opacity-40">Description & Services</label>
-                <textarea rows="2" defaultValue={editingRoom?.description} className="bg-transparent outline-none text-sm py-2 italic resize-none" />
+              {/* Types d'événements */}
+              <div className="flex flex-wrap gap-2">
+                {eventOptions.map(t => (
+                  <button 
+                    key={t} 
+                    type="button" 
+                    onClick={() => setSelectedTypes(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t])}
+                    className={`px-4 py-2 text-[8px] uppercase font-bold border transition-all ${selectedTypes.includes(t) ? "bg-black text-white" : "border-stone-300"}`}
+                  >
+                    {t}
+                  </button>
+                ))}
               </div>
 
-              <div className="flex gap-4">
-                <button onClick={() => setIsModalOpen(false)} className="flex-grow bg-[#0F0F0F] text-white py-5 text-[10px] uppercase font-bold tracking-widest hover:bg-[#B38B59]">
-                  {editingRoom ? "Enregistrer les modifications" : "Publier l'espace sur ROOMBOOK"}
-                </button>
+              <div className="flex gap-4 pt-6">
+                <button type="submit" className="flex-grow bg-[#0F0F0F] text-white py-5 text-[10px] uppercase font-bold tracking-widest hover:bg-[#B38B59]">Enregistrer les données</button>
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-10 border border-black text-[10px] uppercase font-bold">Annuler</button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* --- MODAL PARAMÈTRES --- */}
-      {isSettingsOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#0F0F0F]/95 backdrop-blur-md p-4">
-          <div className="bg-[#F9F6F2] w-full max-w-md p-10 shadow-2xl relative text-[#0F0F0F]">
-            <button onClick={() => setIsSettingsOpen(false)} className="absolute top-6 right-6 opacity-30 hover:opacity-100">✕</button>
-            <h2 className="text-xl font-serif italic mb-8">Sécurité Compte</h2>
-            <div className="space-y-5">
-              <input type="password" placeholder="Ancien mot de passe" className="w-full bg-transparent border-b border-stone-300 py-2 outline-none" />
-              <input type="password" placeholder="Nouveau mot de passe" className="w-full bg-transparent border-b border-stone-300 py-2 outline-none" />
-              <input type="password" placeholder="Confirmer nouveau" className="w-full bg-transparent border-b border-stone-300 py-2 outline-none" />
-              <button onClick={() => setIsSettingsOpen(false)} className="w-full bg-[#0F0F0F] text-white py-4 text-[10px] uppercase font-bold tracking-widest hover:bg-[#B38B59]">Mettre à jour</button>
-            </div>
           </div>
         </div>
       )}
