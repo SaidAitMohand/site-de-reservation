@@ -22,24 +22,13 @@ module.exports = (sequelize, DataTypes) => {
                 allowNull: false,
             },
 
-<<<<<<< HEAD
+            // C'est le prix par journée
             prix: {
                 type: DataTypes.FLOAT,
                 allowNull: false,
             },
-=======
-      prix: { // C'est le prix par journée
-        type: DataTypes.FLOAT,
-        allowNull: false,
-      },
-      //les deux paramêtres pour la localisation
-      latitude: {
-        type: DataTypes.FLOAT,
-        allowNull: false,
-      },
->>>>>>> 003833f7150eb5bc15146dfb009190a3ca54d75e
 
-            // Paramètres pour la localisation
+                // Paramètres pour la localisation
             latitude: {
                 type: DataTypes.FLOAT,
                 allowNull: false,
@@ -60,7 +49,7 @@ module.exports = (sequelize, DataTypes) => {
                 type: DataTypes.TEXT, // Stocke les catégories (Mariage, Dîner, etc.) en format JSON
                 allowNull: true,
             },
-            // ------------------------------------
+            // ------------
 
             proprietaire_id: {
                 type: DataTypes.INTEGER,
