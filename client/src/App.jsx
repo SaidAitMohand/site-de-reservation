@@ -1,3 +1,4 @@
+
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 
 // Pages Utilisateurs (Propriétaires / Clients)
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/owner-dashboard" element={<OwnerDashboard />} />
         <Route path="/client-dashboard" element={<ClientDashboard/>} />
+
 
         {/* --- PARTIE ADMINISTRATEUR --- */}
         {/* On utilise des URLs bien distinctes pour éviter les conflits */}
