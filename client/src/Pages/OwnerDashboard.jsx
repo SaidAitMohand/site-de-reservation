@@ -9,13 +9,11 @@ export default function OwnerDashboard() {
   const [replyText, setReplyText] = useState({ reviewId: null, text: "" });
   const [selectedTypes, setSelectedTypes] = useState([]);
   const eventOptions = ["Mariage", "Conférence", "Anniversaire", "Shooting", "Dîner", "Séminaire"];
-  const [Passwords, SetPasswords] = useState({ current: "", new: "", confirm: "" });
 
   const [myRooms, setMyRooms] = useState([
     { 
       id: 1, 
       name: "Le Grand Ballroom", 
-      views: 1240, 
       price: "12000",
       revenue: "144.000",
       types: ["Mariage", "Dîner"],
@@ -37,6 +35,16 @@ export default function OwnerDashboard() {
     }
   ]);
 
+  // --- STATISTIQUES ---
+  const totalRooms = myRooms.length;
+  const totalBookings = myRooms.reduce((acc, r) => acc + r.bookings.length, 0);
+  const totalRevenue = myRooms.reduce((acc, r) => acc + Number(r.revenue.replace(/\./g, '')), 0);
+  const allReviews = myRooms.flatMap(r => r.reviews);
+  const avgRating = allReviews.length > 0
+    ? (allReviews.reduce((acc, r) => acc + r.rating, 0) / allReviews.length).toFixed(1)
+    : 0;
+
+  // --- FONCTIONS ---
   const handleSaveReply = (roomId, reviewId) => {
     setMyRooms(myRooms.map(room => {
       if (room.id === roomId) {
@@ -87,12 +95,33 @@ export default function OwnerDashboard() {
       <main className="max-w-7xl mx-auto px-6 pt-16">
         <Header userName="KABICHE Karine" onOpenSettings={() => setIsSettingsOpen(true)} />
 
+        {/* --- TITRE ET BOUTON --- */}
         <div className="flex justify-between items-end mb-16 mt-10">
           <h1 className="text-4xl font-serif italic text-[#0F0F0F]">Votre Espace Client</h1>
           <button onClick={() => openEditModal()} className="bg-[#0F0F0F] text-white px-8 py-4 text-[10px] uppercase font-bold tracking-widest hover:bg-[#B38B59] transition-all">+ Nouvelle Salle</button>
         </div>
 
-        {/* --- SECTION SUIVI DES DEMANDES (MISE À JOUR AVEC DATE/HEURE) --- */}
+        {/* --- STATISTIQUES --- */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+          <div className="bg-white border border-stone-200 shadow-sm p-6 text-center">
+            <p className="text-[8px] uppercase opacity-40 mb-2">Mes Salles</p>
+            <p className="text-2xl font-bold">{totalRooms}</p>
+          </div>
+          <div className="bg-white border border-stone-200 shadow-sm p-6 text-center">
+            <p className="text-[8px] uppercase opacity-40 mb-2">Réservations Totales</p>
+            <p className="text-2xl font-bold">{totalBookings}</p>
+          </div>
+          <div className="bg-white border border-stone-200 shadow-sm p-6 text-center">
+            <p className="text-[8px] uppercase opacity-40 mb-2">Revenu Total</p>
+            <p className="text-2xl font-bold">💰 {totalRevenue.toLocaleString()} DA</p>
+          </div>
+          <div className="bg-white border border-stone-200 shadow-sm p-6 text-center">
+            <p className="text-[8px] uppercase opacity-40 mb-2">Avis Moyenne</p>
+            <p className="text-2xl font-bold">⭐ {avgRating}</p>
+          </div>
+        </div>
+
+        {/* --- SECTION SUIVI DES DEMANDES --- */}
         <section className="mb-20">
           <h2 className="text-xl font-serif italic mb-6 border-b border-stone-200 pb-2">Suivi des Demandes & Rendez-vous</h2>
           <div className="bg-white border border-stone-200 shadow-sm overflow-hidden">
@@ -122,7 +151,7 @@ export default function OwnerDashboard() {
                       <button onClick={() => updateBookingStatus(room.id, b.id, b.status)} className={`text-[9px] font-bold uppercase underline not-italic ${b.status === 'En attente' ? 'text-green-600' : 'text-orange-500'}`}>
                         {b.status === 'En attente' ? 'Confirmer' : 'Suspendre'}
                       </button>
-                      <button onClick={() => deleteBooking(room.id, b.id)} className="text-[9px] font-bold uppercase text-red-500 not-italic">Supprimer</button>
+                      <button onClick={() => deleteBooking(room.id, b.id)} className="text-[9px] font-bold uppercase text-red-500">Supprimer</button>
                     </td>
                   </tr>
                 )))}
@@ -138,7 +167,6 @@ export default function OwnerDashboard() {
               <div className="flex flex-col md:flex-row">
                 <div className="md:w-80 h-64 overflow-hidden relative">
                   <img src={room.img} className="w-full h-full object-cover" alt="" />
-                  {/* Badge du nombre de rendez-vous */}
                   <div className="absolute bottom-4 left-4 bg-[#0F0F0F] text-white px-3 py-1 text-[8px] font-bold uppercase tracking-widest">
                     {room.bookings.length} Réservation(s)
                   </div>
@@ -154,7 +182,6 @@ export default function OwnerDashboard() {
                   <div className="flex gap-8 mt-10 border-t pt-6">
                     <div><span className="block text-[8px] uppercase opacity-40">Tarif</span><span className="text-lg font-serif italic text-[#B38B59]">{room.price} DA</span></div>
                     <div><span className="block text-[8px] uppercase opacity-40">Revenu Global</span><span className="text-lg font-serif italic">💰 {room.revenue} DA</span></div>
-                    <div><span className="block text-[8px] uppercase opacity-40">Visites</span><span className="text-lg font-serif italic">👁️ {room.views}</span></div>
                   </div>
                 </div>
               </div>
@@ -212,6 +239,7 @@ export default function OwnerDashboard() {
           <div className="bg-[#F9F6F2] w-full max-w-4xl p-12 shadow-2xl overflow-y-auto max-h-[90vh] relative text-[#0F0F0F]">
             <h2 className="text-2xl font-serif italic mb-10">{editingRoom ? "Editer l'établissement" : "Nouvelle Salle"}</h2>
             <form className="space-y-10" onSubmit={(e) => e.preventDefault()}>
+              {/* Types et Galerie */}
               <div className="space-y-4">
                 <label className="text-[10px] uppercase font-bold text-[#B38B59]">Types d'événements autorisés</label>
                 <div className="flex flex-wrap gap-2">
@@ -220,7 +248,6 @@ export default function OwnerDashboard() {
                   ))}
                 </div>
               </div>
-
               <div className="space-y-4">
                 <label className="text-[10px] uppercase font-bold text-[#B38B59]">Galerie Photos (Upload)</label>
                 <div className="flex flex-wrap gap-4">
