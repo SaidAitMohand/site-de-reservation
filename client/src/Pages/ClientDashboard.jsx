@@ -4,38 +4,35 @@ import { useNavigate } from "react-router-dom";
 
 export default function ClientDashboard() {
   const navigate = useNavigate();
-  
-  // Récupération des infos de session
+
   const token = localStorage.getItem("token");
   const userName = localStorage.getItem("name") || "Client";
 
-  // États pour les données du back
   const [rooms, setRooms] = useState([]);
   const [myBookings, setMyBookings] = useState([]);
+  const [roomComments, setRoomComments] = useState([]);
+  const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // États pour les filtres et UI
   const [filterWilaya, setFilterWilaya] = useState("");
   const [filterBudget, setFilterBudget] = useState("");
   const [selectedRoom, setSelectedRoom] = useState(null);
 
   const [bookingData, setBookingData] = useState({
     date_debut: "",
-    date_fin: "",
-    notes: ""
+    date_fin: ""
   });
 
-  const EventOptions = ["Mariage", "Conférence", "Anniversaire", "Shooting", "Dîner", "Séminaire"];
-
   const wilayas = [
-    "01 Adrar", "02 Chlef", "03 Laghouat", "04 Oum El Bouaghi", "05 Batna", "06 Béjaïa", "07 Biskra", "08 Béchar", "09 Blida", "10 Bouira", 
-    "16 Alger", "19 Sétif", "25 Constantine", "31 Oran" // Liste abrégée pour l'exemple
+    "01 Adrar", "02 Chlef", "03 Laghouat", "04 Oum El Bouaghi", "05 Batna", "06 Béjaïa",
+    "07 Biskra", "08 Béchar", "09 Blida", "10 Bouira", "16 Alger", "19 Sétif",
+    "25 Constantine", "31 Oran"
   ];
 
-  // 1. Chargement initial des données
+  // -------------------- FETCH DATA --------------------
   useEffect(() => {
     if (!token) {
-      navigate("/admin-login"); // Ou ta page de login client
+      navigate("/connexion");
       return;
     }
 
@@ -43,13 +40,13 @@ export default function ClientDashboard() {
       try {
         const headers = { Authorization: `Bearer ${token}` };
 
-        // On récupère les salles (ajusté à ta route admin ou une route publique si tu en crées une)
-        const roomsRes = await fetch("http://localhost:4000/admin/salles", { headers });
+        // UTILISE LA ROUTE /salles (SANS ADMIN)
+        const roomsRes = await fetch("http://localhost:4000/salles", { headers });
+        if (!roomsRes.ok) throw new Error("Erreur serveur ou route inexistante");
         const roomsData = await roomsRes.json();
 
-        // On récupère les réservations du client (nécessite la route GET /client/mes-reservations au back)
         const bookingsRes = await fetch("http://localhost:4000/client/mes-reservations", { headers });
-        const bookingsData = await bookingsRes.json();
+        const bookingsData = bookingsRes.ok ? await bookingsRes.json() : [];
 
         setRooms(roomsData);
         setMyBookings(bookingsData);
@@ -63,10 +60,49 @@ export default function ClientDashboard() {
     fetchData();
   }, [token, navigate]);
 
-  // 2. Soumission d'une réservation réelle
+  // -------------------- COMMENTAIRES --------------------
+  const fetchComments = async (salleId) => {
+    try {
+      const res = await fetch(`http://localhost:4000/commentaires/${salleId}`);
+      if (!res.ok) throw new Error("Impossible de charger les commentaires");
+      const data = await res.json();
+      setRoomComments(data);
+    } catch (err) {
+      console.error("Erreur commentaires:", err);
+    }
+  };
+
+  const handleCommentSubmit = async (e) => {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+
+    try {
+      const res = await fetch(`http://localhost:4000/commentaires`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          contenu: newComment,
+          salle_id: selectedRoom.id
+        })
+      });
+
+      if (res.ok) {
+        setNewComment("");
+        fetchComments(selectedRoom.id);
+      } else {
+        console.error("Erreur lors de l'envoi du commentaire");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // -------------------- RESERVATION --------------------
   const handleBookingSubmit = async (e) => {
     e.preventDefault();
-
     try {
       const res = await fetch(`http://localhost:4000/reservations/${selectedRoom.id}`, {
         method: "POST",
@@ -81,17 +117,14 @@ export default function ClientDashboard() {
       });
 
       const result = await res.json();
-
       if (res.ok) {
         alert("Réservation enregistrée !");
         setSelectedRoom(null);
-        // On rafraîchit la liste des réservations
         window.location.reload();
       } else {
         alert(result.message || "Erreur lors de la réservation");
       }
     } catch (err) {
-      console.error(err);
       alert("Serveur injoignable");
     }
   };
@@ -103,7 +136,7 @@ export default function ClientDashboard() {
       <main className="max-w-7xl mx-auto px-6 pt-16">
         <Header userName={userName} />
 
-        {/* SECTION RÉSERVATIONS RÉELLES */}
+        {/* MES RÉSERVATIONS */}
         <section className="mb-16 mt-10">
           <h2 className="text-xl font-serif italic mb-6 border-b border-stone-200 pb-2">Suivi de mes réservations</h2>
           <div className="bg-white border border-stone-200 overflow-hidden shadow-sm">
@@ -119,12 +152,12 @@ export default function ClientDashboard() {
                 {myBookings.map(b => (
                   <tr key={b.id}>
                     <td className="p-4">
-                        <span className="block font-bold not-italic">{b.salle?.nom || "Salle"}</span>
-                        <span className="text-[10px] opacity-50">ID: {b.id}</span>
+                      <span className="block font-bold not-italic">{b.salle?.nom || "Salle"}</span>
+                      <span className="text-[10px] opacity-50">ID: {b.id}</span>
                     </td>
                     <td className="p-4">Du {new Date(b.date_debut).toLocaleDateString()} au {new Date(b.date_fin).toLocaleDateString()}</td>
                     <td className="p-4 text-center">
-                       <span className="px-3 py-1 bg-stone-100 rounded-full text-[10px] uppercase font-bold not-italic">En attente</span>
+                      <span className="px-3 py-1 bg-stone-100 rounded-full text-[10px] uppercase font-bold not-italic">{b.status || "En attente"}</span>
                     </td>
                   </tr>
                 ))}
@@ -136,7 +169,7 @@ export default function ClientDashboard() {
           </div>
         </section>
 
-        {/* FILTRES */}
+        {/* FILTRAGE DES SALLES */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12 bg-white p-8 border border-stone-200 shadow-sm">
           <div className="flex flex-col">
             <label className="text-[10px] uppercase font-bold opacity-40 mb-2">Filtrer par Wilaya</label>
@@ -151,28 +184,27 @@ export default function ClientDashboard() {
           </div>
         </div>
 
-        {/* LISTE DES SALLES AJUSTÉE AU BACKEND */}
+        {/* LISTE DES SALLES */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {rooms
             .filter(r => (filterWilaya === "" || r.wilaya === filterWilaya) && (filterBudget === "" || r.prix <= parseInt(filterBudget)))
             .map(room => (
               <div key={room.id} className="bg-white border border-stone-200 group relative">
                 <div className="h-56 overflow-hidden relative">
-                  {/* Correction du chemin de l'image */}
                   <img src={`http://localhost:4000${room.img}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={room.nom} />
                   <div className="absolute top-4 left-4 bg-[#0F0F0F] text-white px-3 py-1 text-[8px] font-bold uppercase tracking-widest">{room.wilaya || "Algérie"}</div>
                 </div>
                 <div className="p-6">
                   <h3 className="text-xl font-serif mb-2">{room.nom}</h3>
                   <p className="text-[#B38B59] font-serif italic">{room.prix} DA <span className="text-[10px] text-stone-400 not-italic uppercase tracking-widest">/ Jour</span></p>
-                  <button onClick={() => setSelectedRoom(room)} className="mt-6 w-full border border-black py-4 text-[9px] uppercase font-bold tracking-[0.2em] hover:bg-black hover:text-white transition-all">Détails & Réserver</button>
+                  <button onClick={() => { setSelectedRoom(room); fetchComments(room.id); }} className="mt-6 w-full border border-black py-4 text-[9px] uppercase font-bold tracking-[0.2em] hover:bg-black hover:text-white transition-all">Détails & Réserver</button>
                 </div>
               </div>
             ))}
         </div>
       </main>
 
-      {/* MODAL RÉSERVATION */}
+      {/* MODAL DÉTAILS SALLE */}
       {selectedRoom && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#0F0F0F]/90 backdrop-blur-sm p-4">
           <div className="bg-[#F9F6F2] w-full max-w-4xl p-10 relative max-h-[90vh] overflow-y-auto">
@@ -182,23 +214,50 @@ export default function ClientDashboard() {
               <p className="text-[10px] uppercase font-bold text-[#B38B59] tracking-widest mt-1">Capacité : {selectedRoom.capacite} personnes</p>
             </div>
 
-            <form onSubmit={handleBookingSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="flex flex-col border-b border-stone-300 py-2">
-                <label className="text-[9px] uppercase font-bold opacity-40">Date de début</label>
-                <input required type="date" value={bookingData.date_debut} onChange={(e) => setBookingData({...bookingData, date_debut: e.target.value})} className="bg-transparent outline-none" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+              {/* Formulaire réservation */}
+              <form onSubmit={handleBookingSubmit} className="flex flex-col gap-6">
+                <h3 className="text-sm font-bold uppercase tracking-widest border-b border-stone-200 pb-2">Réserver cette salle</h3>
+                <div className="flex flex-col border-b border-stone-300 py-2">
+                  <label className="text-[9px] uppercase font-bold opacity-40">Date de début</label>
+                  <input required type="date" value={bookingData.date_debut} onChange={(e) => setBookingData({...bookingData, date_debut: e.target.value})} className="bg-transparent outline-none" />
+                </div>
+                <div className="flex flex-col border-b border-stone-300 py-2">
+                  <label className="text-[9px] uppercase font-bold opacity-40">Date de fin</label>
+                  <input required type="date" value={bookingData.date_fin} onChange={(e) => setBookingData({...bookingData, date_fin: e.target.value})} className="bg-transparent outline-none" />
+                </div>
+                <button type="submit" className="bg-[#0F0F0F] text-white py-5 text-[10px] uppercase font-bold tracking-[0.3em] hover:bg-[#B38B59] transition-colors">
+                  Confirmer la demande
+                </button>
+              </form>
+
+              {/* Commentaires */}
+              <div className="flex flex-col gap-6">
+                <h3 className="text-sm font-bold uppercase tracking-widest border-b border-stone-200 pb-2">Avis des clients</h3>
+                <div className="max-h-48 overflow-y-auto pr-2 flex flex-col gap-4">
+                  {roomComments.length > 0 ? roomComments.map(c => (
+                    <div key={c.id} className="bg-white p-3 border border-stone-200 shadow-sm">
+                      <p className="text-[10px] font-bold uppercase opacity-50">{c.utilisateur?.name || "Client"}</p>
+                      <p className="text-xs italic">"{c.contenu}"</p>
+                    </div>
+                  )) : <p className="text-xs opacity-50 italic">Aucun avis pour le moment.</p>}
+                </div>
+
+                <form onSubmit={handleCommentSubmit} className="mt-4 flex flex-col gap-2">
+                  <label className="text-[9px] uppercase font-bold opacity-40">Laisser un avis</label>
+                  <textarea 
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    className="bg-transparent border border-stone-300 p-2 text-xs italic outline-none resize-none"
+                    placeholder="Votre expérience..."
+                    rows="2"
+                  />
+                  <button type="submit" className="text-[9px] uppercase font-bold tracking-widest border border-black py-2 hover:bg-black hover:text-white transition-all">
+                    Publier l'avis
+                  </button>
+                </form>
               </div>
-              <div className="flex flex-col border-b border-stone-300 py-2">
-                <label className="text-[9px] uppercase font-bold opacity-40">Date de fin</label>
-                <input required type="date" value={bookingData.date_fin} onChange={(e) => setBookingData({...bookingData, date_fin: e.target.value})} className="bg-transparent outline-none" />
-              </div>
-              <div className="md:col-span-2 flex flex-col border-b border-stone-300 py-2">
-                <label className="text-[9px] uppercase font-bold opacity-40">Notes pour le propriétaire</label>
-                <textarea rows="3" value={bookingData.notes} onChange={(e) => setBookingData({...bookingData, notes: e.target.value})} className="bg-transparent outline-none italic text-sm resize-none" placeholder="Ex: Type d'événement, besoins spécifiques..." />
-              </div>
-              <button type="submit" className="md:col-span-2 bg-[#0F0F0F] text-white py-5 text-[10px] uppercase font-bold tracking-[0.3em] hover:bg-[#B38B59] transition-colors">
-                Confirmer ma demande de réservation
-              </button>
-            </form>
+            </div>
           </div>
         </div>
       )}

@@ -7,74 +7,69 @@ export default function AdminDashboard() {
   const [Rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Centralisation des clés de stockage
+  const token = localStorage.getItem("token") || localStorage.getItem("adminToken");
   const currentAdmin = localStorage.getItem("adminName") || "ADMIN";
-  const token = localStorage.getItem("adminToken");
 
-  // Sécurité + chargement
   useEffect(() => {
     const isAdmin = localStorage.getItem("isAdmin");
+
     if (!isAdmin || !token) {
       navigate("/admin-login");
-    } else {
-      fetchAllData();
+      return;
     }
+
+    const fetchData = async () => {
+      try {
+        const headers = {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        };
+
+        // Appels aux routes préfixées par /admin (conforme à ton backend)
+        const [usersRes, roomsRes] = await Promise.all([
+          fetch("http://localhost:4000/admin/users", { headers }),
+          fetch("http://localhost:4000/admin/salles", { headers })
+        ]);
+
+        if (usersRes.ok && roomsRes.ok) {
+          const usersData = await usersRes.json();
+          const roomsData = await roomsRes.json();
+          setUsers(usersData);
+          setRooms(roomsData);
+        } else {
+          console.error("Erreur : Statut HTTP non valide");
+        }
+      } catch (err) {
+        console.error("Erreur récupération :", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, [navigate, token]);
 
-  // Récupération données
-  const fetchAllData = async () => {
-    setLoading(true);
-    try {
-      const headers = {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      };
-
-      const [resUsers, resRooms] = await Promise.all([
-        fetch("http://localhost:4000/admin/users", { headers }),
-        fetch("http://localhost:4000/admin/salles", { headers }),
-      ]);
-
-      if (resUsers.ok && resRooms.ok) {
-        setUsers(await resUsers.json());
-        setRooms(await resRooms.json());
-      } else {
-        console.error("Token invalide ou accès refusé");
-      }
-    } catch (error) {
-      console.error("Erreur serveur:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Logout
   const handleLogout = () => {
     localStorage.clear();
     navigate("/admin-login");
   };
 
-  // Bannir / réactiver utilisateur
   const switchEtat = async (user) => {
     const newStatus = !user.status;
-
     try {
-      const res = await fetch(
-        `http://localhost:4000/admin/users/${user.id}/status`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ status: newStatus }),
-        }
-      );
+      const res = await fetch(`http://localhost:4000/admin/users/${user.id}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
 
       if (res.ok) {
         setUsers((prev) =>
-          prev.map((u) =>
-            u.id === user.id ? { ...u, status: newStatus } : u
-          )
+          prev.map((u) => (u.id === user.id ? { ...u, status: newStatus } : u))
         );
       }
     } catch (err) {
@@ -82,7 +77,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // Activer / désactiver salle
   const toggleRoomStatus = async (roomId) => {
     const room = Rooms.find((r) => r.id === roomId);
     if (!room) return;
@@ -90,23 +84,18 @@ export default function AdminDashboard() {
     const newStatus = room.status === "Validée" ? "Désactivée" : "Validée";
 
     try {
-      const res = await fetch(
-        `http://localhost:4000/admin/salles/${roomId}/status`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ status: newStatus }),
-        }
-      );
+      const res = await fetch(`http://localhost:4000/admin/salles/${roomId}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
 
       if (res.ok) {
         setRooms((prev) =>
-          prev.map((r) =>
-            r.id === roomId ? { ...r, status: newStatus } : r
-          )
+          prev.map((r) => (r.id === roomId ? { ...r, status: newStatus } : r))
         );
       }
     } catch (err) {
@@ -123,7 +112,8 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F9F6F2] font-sans pb-20 text-[#0F0F0F]">
-      {/* NAV */}
+      
+      {/* NAVIGATION */}
       <nav className="max-w-7xl mx-auto px-6 py-8 flex justify-between items-center border-b border-stone-200/60">
         <div className="flex items-center gap-5">
           <div className="w-12 h-12 bg-black text-white flex items-center justify-center font-serif italic text-2xl shadow-md">
@@ -147,13 +137,13 @@ export default function AdminDashboard() {
         </button>
       </nav>
 
-      {/* MAIN */}
+      {/* CONTENU PRINCIPAL */}
       <main className="max-w-7xl mx-auto px-6 pt-16">
         <h1 className="text-5xl font-serif italic mb-8">Modération</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
 
-          {/* USERS */}
+          {/* SECTION UTILISATEURS */}
           <section className="bg-white border border-stone-200 shadow-sm overflow-hidden">
             <div className="p-6 bg-stone-50/50 border-b border-stone-100">
               <h2 className="text-[11px] font-bold uppercase tracking-widest text-stone-400">
@@ -164,20 +154,24 @@ export default function AdminDashboard() {
             <table className="w-full text-left text-xs">
               <tbody className="divide-y divide-stone-100">
                 {Users.map((user) => (
-                  <tr key={user.id}>
+                  <tr key={user.id} className="hover:bg-stone-50/30 transition-colors">
                     <td className="p-5">
                       <p className="text-sm font-bold">{user.name}</p>
                       <p className="text-[10px] opacity-40">{user.username}</p>
                     </td>
 
                     <td className="p-5">
-                      {user.status ? "Actif" : "Banni"}
+                      <span className={user.status ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
+                        {user.status ? "Actif" : "Banni"}
+                      </span>
                     </td>
 
                     <td className="p-5 text-right">
                       <button
                         onClick={() => switchEtat(user)}
-                        className="text-[9px] font-bold uppercase px-4 py-2 border"
+                        className={`text-[9px] font-bold uppercase px-4 py-2 border transition-all ${
+                          user.status ? "hover:bg-red-500 hover:text-white hover:border-red-500" : "hover:bg-black hover:text-white hover:border-black"
+                        }`}
                       >
                         {user.status ? "Bannir" : "Réactiver"}
                       </button>
@@ -188,7 +182,7 @@ export default function AdminDashboard() {
             </table>
           </section>
 
-          {/* ROOMS */}
+          {/* SECTION SALLES */}
           <section className="bg-white border border-stone-200 shadow-sm overflow-hidden">
             <div className="p-6 bg-stone-50/50 border-b border-stone-100">
               <h2 className="text-[11px] font-bold uppercase tracking-widest text-stone-400">
@@ -199,20 +193,18 @@ export default function AdminDashboard() {
             <table className="w-full text-left text-xs">
               <tbody className="divide-y divide-stone-100">
                 {Rooms.map((room) => (
-                  <tr key={room.id}>
+                  <tr key={room.id} className="hover:bg-stone-50/30 transition-colors">
                     <td className="p-5">
-                      <p className="text-sm font-bold">{room.name}</p>
-                      <p className="text-[10px] opacity-40">{room.wilaya}</p>
+                      <p className="text-sm font-bold">{room.nom || room.name}</p>
+                      <p className="text-[10px] opacity-40">Capacité: {room.capacite || "N/A"}</p>
                     </td>
 
                     <td className="p-5 text-right">
                       <button
                         onClick={() => toggleRoomStatus(room.id)}
-                        className="text-[9px] font-bold border border-black px-4 py-2"
+                        className="text-[9px] font-bold border border-black px-4 py-2 hover:bg-black hover:text-white transition-all"
                       >
-                        {room.status === "Validée"
-                          ? "Désactiver"
-                          : "Activer"}
+                        {room.status === "Validée" ? "Désactiver" : "Activer"}
                       </button>
                     </td>
                   </tr>

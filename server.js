@@ -7,9 +7,9 @@ const multer = require("multer");
 const path = require("path");
 const { Sequelize, DataTypes, Op } = require("sequelize");
 
+// -------------------- INIT --------------------
 const app = express();
 const port = 4000;
-
 const JWT_SECRET = "une_cle_secrete_tres_longue__pour_le_projet_12345";
 
 // -------------------- MIDDLEWARE --------------------
@@ -25,7 +25,7 @@ app.use(cors({
 app.use(express.static("public"));
 app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 
-// -------------------- MULTER (UPLOAD IMAGES) --------------------
+// -------------------- MULTER --------------------
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, "public/uploads/");
@@ -36,7 +36,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// -------------------- SEQUELIZE CONFIG --------------------
+// -------------------- SEQUELIZE --------------------
 const sequelize = new Sequelize("site_reservation", "root", "", {
   host: "localhost",
   dialect: "mariadb",
@@ -56,7 +56,6 @@ const Commentaire = commentaireModel(sequelize, DataTypes);
 const Reservation = reservationModel(sequelize, DataTypes);
 
 // -------------------- RELATIONS --------------------
-// 
 utilisateur.hasMany(salle, { foreignKey: "proprietaire_id" });
 salle.belongsTo(utilisateur, { foreignKey: "proprietaire_id" });
 
@@ -72,7 +71,7 @@ Reservation.belongsTo(utilisateur, { foreignKey: "utilisateur_id" });
 salle.hasMany(Reservation, { foreignKey: "salle_id" });
 Reservation.belongsTo(salle, { foreignKey: "salle_id" });
 
-// -------------------- AUTH MIDDLEWARE --------------------
+// -------------------- MIDDLEWARE AUTH --------------------
 const verifierRole = (rolesAutorises = []) => {
   return (req, res, next) => {
     const authHeader = req.headers["authorization"];
@@ -143,19 +142,47 @@ app.post("/connexion", async (req, res) => {
   }
 });
 
-// -------------------- ROUTES SALLES (PUBLIC & CLIENT) --------------------
-// Pour afficher les salles sur le Dashboard Client
+// -------------------- ROUTES SALLES --------------------
+// Public pour dashboard client
 app.get("/salles", async (req, res) => {
   try {
-    const salles = await salle.findAll(); // Tu peux ajouter { where: { status: 'Validée' } } si tu veux
+    const toutesLesSalles = await salle.findAll();
+    res.json(toutesLesSalles);
+  } catch (error) {
+    res.status(500).json({ erreur: error.message });
+  }
+});
+
+// Admin
+app.get("/admin/salles", verifierRole(["admin"]), async (req, res) => {
+  try {
+    const salles = await salle.findAll();
     res.json(salles);
   } catch (error) {
     res.status(500).json({ erreur: error.message });
   }
 });
 
-// -------------------- ROUTES RESERVATION (CLIENT) --------------------
-// Voir ses propres réservations
+app.get("/admin/users", verifierRole(["admin"]), async (req, res) => {
+  try {
+    const users = await utilisateur.findAll();
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ erreur: error.message });
+  }
+});
+
+app.put("/admin/users/:id/status", verifierRole(["admin"]), async (req, res) => {
+  try {
+    await utilisateur.update({ status: req.body.status }, { where: { id: req.params.id } });
+    res.json({ message: "Statut utilisateur mis à jour" });
+  } catch (error) {
+    res.status(500).json({ erreur: error.message });
+  }
+});
+
+// -------------------- ROUTES RESERVATIONS --------------------
+// Client
 app.get("/client/mes-reservations", verifierRole(["client"]), async (req, res) => {
   try {
     const mesReservations = await Reservation.findAll({
@@ -169,7 +196,6 @@ app.get("/client/mes-reservations", verifierRole(["client"]), async (req, res) =
   }
 });
 
-// Créer une réservation
 app.post("/reservations/:salleId", verifierRole(["client"]), async (req, res) => {
   try {
     const { date_debut, date_fin } = req.body;
@@ -200,8 +226,35 @@ app.post("/reservations/:salleId", verifierRole(["client"]), async (req, res) =>
   }
 });
 
+// -------------------- ROUTES COMMENTAIRES --------------------
+app.get("/commentaires/:salleId", async (req, res) => {
+  try {
+    const list = await Commentaire.findAll({
+      where: { salle_id: req.params.salleId },
+      include: [{ model: utilisateur, attributes: ['name'] }],
+      order: [['createdAt', 'DESC']]
+    });
+    res.json(list);
+  } catch (error) {
+    res.status(500).json({ erreur: error.message });
+  }
+});
+
+app.post("/commentaires", verifierRole(["client","proprietaire"]), async (req, res) => {
+  try {
+    const { contenu, salle_id } = req.body;
+    const nouveauCommentaire = await Commentaire.create({
+      contenu,
+      salle_id,
+      utilisateur_id: req.user.id
+    });
+    res.status(201).json(nouveauCommentaire);
+  } catch (error) {
+    res.status(500).json({ erreur: error.message });
+  }
+});
+
 // -------------------- ROUTES PROPRIETAIRE --------------------
-// Créer une salle
 app.post("/owner/salles", verifierRole(["proprietaire"]), upload.array("photos", 5), async (req, res) => {
   try {
     const { nom, description, capacite, prix, latitude, longitude } = req.body;
@@ -221,29 +274,16 @@ app.post("/owner/salles", verifierRole(["proprietaire"]), upload.array("photos",
   }
 });
 
-// Voir ses propres salles
 app.get("/owner/salles", verifierRole(["proprietaire"]), async (req, res) => {
-  const salles = await salle.findAll({ where: { proprietaire_id: req.user.id } });
-  res.json(salles);
+  try {
+    const salles = await salle.findAll({ where: { proprietaire_id: req.user.id } });
+    res.json(salles);
+  } catch (error) {
+    res.status(500).json({ erreur: error.message });
+  }
 });
 
-// -------------------- ROUTES ADMIN --------------------
-app.get("/admin/users", verifierRole(["admin"]), async (req, res) => {
-  const users = await utilisateur.findAll();
-  res.json(users);
-});
-
-app.get("/admin/salles", verifierRole(["admin"]), async (req, res) => {
-  const salles = await salle.findAll();
-  res.json(salles);
-});
-
-app.put("/admin/users/:id/status", verifierRole(["admin"]), async (req, res) => {
-  await utilisateur.update({ status: req.body.status }, { where: { id: req.params.id } });
-  res.json({ message: "Statut utilisateur mis à jour" });
-});
-
-// -------------------- TEST DB & START --------------------
+// -------------------- DB SYNC & START --------------------
 sequelize.authenticate()
   .then(() => {
     console.log("Connecté à la base de données");
