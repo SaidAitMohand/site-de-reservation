@@ -42,17 +42,17 @@ Le projet suit une **architecture client–serveur** et sépare entre le fronten
 **Client :**
 - Rechercher et filtrer les salles.
 - Visualiser les salles sur une carte interactive.
-- Réserver une salle et consulter l’historique des réservations.
-- Laisser des commentaires et avis.
+- Réserver une salle et consulter l’historique de ses réservations.
+- Laisser des commentaires.
 
 **Propriétaire :**
 - Ajouter, modifier et supprimer ses propres salles.
-- Consulter les commentaires et avis des clients.
+- Consulter les commentaires des clients.
 - Visualiser les statistiques (nombre de réservations, total des revenus).
 
 **Administrateur :**
 - Gérer les comptes utilisateurs.
-- Supprimer ou modérer les annonces et commentaires.
+- Supprimer ou modérer les annonces ou commentaires.
 
 ---
 
