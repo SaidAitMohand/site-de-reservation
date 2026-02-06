@@ -32,14 +32,20 @@ export default function ClientDashboard() {
     "51 Ouled Djellal", "52 Bordj Baji Mokhtar", "53 Béni Abbès", "54 Timimoun", "55 Touggourt", "56 Djanet", "57 In Salah", "58 In Guezzam"
   ];
 
-  
-  const [rooms, availableRooms] = useState([]);
+  //recuperer les salles disponibles depuis le backend
+  const [rooms, setRooms] = useState([]);
   useEffect(() => {
-    //recuperer les salle disponible depuis le backend
-    fetch("http://localhost:5000/api/rooms")
-    .then()
+    fetch("http://localhost:3000/salles")
+    .then( res => {
+      return res.json();
+    })
+    .then(data => {
+      setRooms(data);
+      console.log(data)
+      })
     .catch(err => console.error("Erreur lors de la récupération des salles :", err));
   }, []);
+
 
   const [myBookings, setMyBookings] = useState([
     { id: 1, roomName: "Le Grand Ballroom", city: "16 Alger", date: "2024-05-20", type: "Mariage", status: "En attente" }
@@ -79,16 +85,16 @@ export default function ClientDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100 text-xs italic">
-                {myBookings.map(b => (
+                {rooms.map(b => (
                   <tr key={b.id}>
                     <td className="p-4">
-                        <span className="block font-bold not-italic">{b.roomName}</span>
-                        <span className="text-[10px] opacity-50">{b.city}</span>
+                        <span className="block font-bold not-italic">{b.nom}</span>
+                        <span className="text-[10px] opacity-50">{b.id}</span>
                     </td>
-                    <td className="p-4">{b.type}</td>
-                    <td className="p-4">{b.date}</td>
+                    <td className="p-4">{b.types}</td>
+                    <td className="p-4">{b.proprietaire_id}</td>
                     <td className="p-4 text-center">
-                      <span className={`px-3 py-1 rounded-full text-[8px] font-bold uppercase not-italic ${b.status === 'Confirmé' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>{b.status}</span>
+                      <span className={`px-3 py-1 rounded-full text-[8px] font-bold uppercase not-italic ${b.id === 'Confirmé' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>{b.id}</span>
                     </td>
                   </tr>
                 ))}
@@ -114,7 +120,7 @@ export default function ClientDashboard() {
 
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-          {availableRooms
+          {rooms
             .filter(r => (filterWilaya === "" || r.city === filterWilaya) && (filterBudget === "" || r.price <= parseInt(filterBudget)))
             .map(room => (
             <div key={room.id} className="bg-white border border-stone-200 group relative">

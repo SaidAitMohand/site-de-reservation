@@ -120,7 +120,7 @@ async function synchroniserBaseDeDonnees() {
 }
 
 // Appeler la fonction
-synchroniserBaseDeDonnees();
+//synchroniserBaseDeDonnees();
 
 //relations squelize afin d'eviter le bug lors des jointures entres tables
 

@@ -5,9 +5,11 @@
     "express": "^5.2.1",
     "express-myconnection": "^1.0.4",
     "jsonwebtoken": "^9.0.3",
+    "leaflet": "^1.9.4",
     "mariadb": "^3.4.5",
     "multer": "^2.0.2",
     "mysql": "^2.18.1",
+    "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.13.0",
     "sequelize": "^6.37.7"
   },
