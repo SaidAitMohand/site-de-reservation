@@ -18,7 +18,7 @@ Le projet suit une **architecture client–serveur** et repose sur une séparati
 
 
       [Utilisateur Frontend]   
-      | requêtes HTTP (fetch/axios avec JWT)  
+      | requêtes HTTP (fetch avec JWT)  
       v
       [Backend Express + Node.js]   
       | logique métier, vérification, CRUD  
