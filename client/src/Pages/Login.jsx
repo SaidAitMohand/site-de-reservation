@@ -1,12 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../Components/Navbar";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
+  const navigate = useNavigate();
+  const [username, setUsername] = useState(""); 
+  const [password, setPassword] = useState("");
   const [captchaInput, setCaptchaInput] = useState("");
   const [captchaCode, setCaptchaCode] = useState("");
   const [step, setStep] = useState("login");
+  const [error, setError] = useState("");
 
   const generateCaptcha = useCallback(() => {
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -22,33 +25,60 @@ export default function Login() {
     generateCaptcha();
   }, [generateCaptcha]);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
+    setError("");
+
+    // 1. Vérification du Captcha
     if (captchaInput.toUpperCase() !== captchaCode) {
-      alert("Code de sécurité incorrect.");
+      setError("Code de sécurité incorrect.");
       generateCaptcha();
       return;
     }
-    console.log("Connexion ROOMBOOK en cours...");
-  };
 
-  const handleForgotPassword = (e) => {
-    e.preventDefault();
-    alert(`Instructions envoyées à : ${email}`);
-    setStep("login");
+    try {
+      // 2. Appel API Connexion
+      const response = await fetch("http://localhost:3000/connexion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+       
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("userRole", data.role);
+        localStorage.setItem("userName", data.name);
+
+        
+        if (data.role === "admin") {
+          navigate("/admin/dashboard");
+        } else if (data.role === "proprietaire") {
+          navigate("/owner-dashboard");
+        } else {
+        
+          navigate("/");
+        }
+      } else {
+        setError(data.message || "Identifiants incorrects.");
+        generateCaptcha();
+      }
+    } catch (err) {
+      setError("Erreur de connexion au serveur.");
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[#F9F6F2] selection:bg-[#B38B59] selection:text-white flex flex-col">
+    <div className="min-h-screen bg-[#F9F6F2] selection:bg-[#B38B59] selection:text-white flex flex-col font-light">
       <Navbar />
 
-      {}
       <main className="flex-grow flex items-center justify-center px-6 pt-24 pb-12">
-        <div className="w-full max-w-[480px] bg-white border border-[#0F0F0F]/5 p-10 md:p-16 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.05)] transition-all">
+        <div className="w-full max-w-[480px] bg-white border border-[#0F0F0F]/5 p-10 md:p-16 shadow-2xl transition-all">
           
           {step === "login" ? (
             <div className="space-y-12">
-              {}
               <div className="text-center space-y-3">
                 <h1 className="text-4xl font-serif text-[#0F0F0F] tracking-tight italic">Se connecter</h1>
                 <div className="flex items-center justify-center gap-4">
@@ -58,17 +88,22 @@ export default function Login() {
                 </div>
               </div>
 
-              <form onSubmit={handleLogin} className="space-y-8">
+              {error && (
+                <p className="text-red-500 text-[9px] font-bold uppercase p-3 bg-red-50 border-l-2 border-red-500 animate-pulse">
+                  {error}
+                </p>
+              )}
 
+              <form onSubmit={handleLogin} className="space-y-8">
                 <div className="space-y-6">
                   <div className="group flex flex-col border-b border-[#0F0F0F]/10 focus-within:border-[#B38B59] transition-all py-2">
-                    <label className="text-[9px] uppercase tracking-widest opacity-40 font-bold mb-1 group-focus-within:text-[#B38B59]">Email</label>
+                    <label className="text-[9px] uppercase tracking-widest opacity-40 font-bold mb-1 group-focus-within:text-[#B38B59]">Identifiant (Nom d'utilisateur)</label>
                     <input 
-                      type="email" 
+                      type="text" 
                       required
-                      placeholder="votre@email.com"
+                      placeholder="Ex: username"
                       className="bg-transparent outline-none text-lg italic placeholder:text-stone-200 placeholder:not-italic"
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => setUsername(e.target.value)}
                     />
                   </div>
 
@@ -79,10 +114,10 @@ export default function Login() {
                       required
                       placeholder="••••••••"
                       className="bg-transparent outline-none text-lg placeholder:text-stone-200"
+                      onChange={(e) => setPassword(e.target.value)}
                     />
                   </div>
                 </div>
-
 
                 <div className="bg-[#0F0F0F] p-6 space-y-4 rounded-sm">
                   <div className="flex justify-between items-center border-b border-white/10 pb-3">
@@ -108,7 +143,7 @@ export default function Login() {
                 </div>
 
                 <div className="flex flex-col gap-6 pt-4">
-                  <button className="w-full bg-[#0F0F0F] text-white py-5 text-[11px] uppercase tracking-[0.5em] font-bold hover:bg-[#B38B59] transition-all duration-500 shadow-xl">
+                  <button type="submit" className="w-full bg-[#0F0F0F] text-white py-5 text-[11px] uppercase tracking-[0.5em] font-bold hover:bg-[#B38B59] transition-all duration-500 shadow-xl">
                     Connexion
                   </button>
                   <button 
@@ -116,50 +151,30 @@ export default function Login() {
                     onClick={() => setStep("forgot")} 
                     className="text-[9px] uppercase tracking-[0.3em] text-center opacity-40 hover:opacity-100 transition-opacity"
                   >
-                    Mot de passe oublié ?
+                    Besoin d'aide ?
                   </button>
                 </div>
               </form>
             </div>
           ) : (
-            
             <div className="space-y-10 text-center animate-in fade-in duration-700">
-              <div className="space-y-4">
-                <h1 className="text-4xl font-serif text-[#0F0F0F] italic">Récupération</h1>
-                <p className="text-[10px] uppercase tracking-widest text-[#B38B59] font-bold leading-relaxed">
-                  Entrez votre email pour recevoir <br/> vos accès ROOMBOOK.
-                </p>
-              </div>
-
-              <form onSubmit={handleForgotPassword} className="space-y-8">
-                <input 
-                  type="email" 
-                  required
-                  className="w-full bg-transparent border-b border-[#0F0F0F]/10 py-4 outline-none text-center italic text-xl focus:border-[#B38B59] transition-all" 
-                  placeholder="votre@email.com" 
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-                <div className="flex flex-col gap-5">
-                  <button className="w-full bg-[#0F0F0F] text-white py-5 text-[11px] uppercase tracking-[0.4em] font-bold hover:bg-[#B38B59] transition-all shadow-lg">
-                    Envoyer le lien
-                  </button>
-                  <button 
-                    type="button"
-                    onClick={() => setStep("login")} 
-                    className="text-[9px] uppercase tracking-widest opacity-40 hover:opacity-100 transition-opacity"
-                  >
-                    Retour à la connexion
-                  </button>
-                </div>
-              </form>
+              <h1 className="text-4xl font-serif text-[#0F0F0F] italic">Assistance</h1>
+              <p className="text-[10px] uppercase tracking-widest text-[#B38B59] font-bold leading-relaxed">
+                Contactez l'administrateur pour réinitialiser <br/> votre accès ROOMBOOK.
+              </p>
+              <button 
+                onClick={() => setStep("login")} 
+                className="w-full bg-[#0F0F0F] text-white py-5 text-[11px] uppercase tracking-[0.4em] font-bold hover:bg-[#B38B59] transition-all"
+              >
+                Retour
+              </button>
             </div>
           )}
 
-          
           <div className="mt-12 pt-8 border-t border-stone-100 text-center">
             <p className="text-[10px] uppercase tracking-widest opacity-40">
-              Nouveau sur la plateforme ? {" "}
-              <Link to="/register" className="text-[#B38B59] font-bold hover:underline transition-all">Créer un compte</Link>
+              Pas encore membre ? {" "}
+              <Link to="/register" className="text-[#B38B59] font-bold hover:underline">Créer un profil</Link>
             </p>
           </div>
         </div>

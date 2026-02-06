@@ -24,6 +24,7 @@ export default function App() {
         <Route path="/owner-dashboard" element={<OwnerDashboard />} />
         <Route path="/client-dashboard" element={<ClientDashboard/>} />
 
+
         {/* --- PARTIE ADMINISTRATEUR --- */}
         {/* On utilise des URLs bien distinctes pour éviter les conflits */}
         <Route path="/admin-login" element={<AdminLogin />} />
