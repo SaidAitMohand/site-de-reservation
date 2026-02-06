@@ -9,7 +9,7 @@ const { Sequelize, DataTypes, Op } = require("sequelize");
 
 // -------------------- INIT --------------------
 const app = express();
-const port = 4000;
+const port = 3000;
 const JWT_SECRET = "une_cle_secrete_tres_longue__pour_le_projet_12345";
 
 // -------------------- MIDDLEWARE --------------------
