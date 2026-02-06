@@ -25,7 +25,7 @@ app.use(cors({
 app.use(express.static("public"));
 app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 
-// -------------------- MULTER --------------------
+// -------------------- MULTER (GESTION IMAGES) --------------------
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, "public/uploads/");
@@ -143,7 +143,8 @@ app.post("/connexion", async (req, res) => {
 });
 
 // -------------------- ROUTES SALLES --------------------
-// Public pour dashboard client
+
+// Route publique pour le dashboard client (Celle qui causait la 404)
 app.get("/salles", async (req, res) => {
   try {
     const toutesLesSalles = await salle.findAll();
@@ -153,36 +154,37 @@ app.get("/salles", async (req, res) => {
   }
 });
 
-// Admin
-app.get("/admin/salles", verifierRole(["admin"]), async (req, res) => {
+// -------------------- ROUTES COMMENTAIRES --------------------
+
+app.get("/commentaires/:salleId", async (req, res) => {
   try {
-    const salles = await salle.findAll();
-    res.json(salles);
+    const list = await Commentaire.findAll({
+      where: { salle_id: req.params.salleId },
+      include: [{ model: utilisateur, attributes: ['name'] }],
+      order: [['createdAt', 'DESC']]
+    });
+    res.json(list);
   } catch (error) {
     res.status(500).json({ erreur: error.message });
   }
 });
 
-app.get("/admin/users", verifierRole(["admin"]), async (req, res) => {
+app.post("/commentaires", verifierRole(["client", "proprietaire"]), async (req, res) => {
   try {
-    const users = await utilisateur.findAll();
-    res.json(users);
+    const { contenu, salle_id } = req.body;
+    const nouveauCommentaire = await Commentaire.create({
+      contenu,
+      salle_id,
+      utilisateur_id: req.user.id
+    });
+    res.status(201).json(nouveauCommentaire);
   } catch (error) {
     res.status(500).json({ erreur: error.message });
   }
 });
 
-app.put("/admin/users/:id/status", verifierRole(["admin"]), async (req, res) => {
-  try {
-    await utilisateur.update({ status: req.body.status }, { where: { id: req.params.id } });
-    res.json({ message: "Statut utilisateur mis à jour" });
-  } catch (error) {
-    res.status(500).json({ erreur: error.message });
-  }
-});
+// -------------------- ROUTES RESERVATIONS (CLIENT) --------------------
 
-// -------------------- ROUTES RESERVATIONS --------------------
-// Client
 app.get("/client/mes-reservations", verifierRole(["client"]), async (req, res) => {
   try {
     const mesReservations = await Reservation.findAll({
@@ -226,35 +228,8 @@ app.post("/reservations/:salleId", verifierRole(["client"]), async (req, res) =>
   }
 });
 
-// -------------------- ROUTES COMMENTAIRES --------------------
-app.get("/commentaires/:salleId", async (req, res) => {
-  try {
-    const list = await Commentaire.findAll({
-      where: { salle_id: req.params.salleId },
-      include: [{ model: utilisateur, attributes: ['name'] }],
-      order: [['createdAt', 'DESC']]
-    });
-    res.json(list);
-  } catch (error) {
-    res.status(500).json({ erreur: error.message });
-  }
-});
-
-app.post("/commentaires", verifierRole(["client","proprietaire"]), async (req, res) => {
-  try {
-    const { contenu, salle_id } = req.body;
-    const nouveauCommentaire = await Commentaire.create({
-      contenu,
-      salle_id,
-      utilisateur_id: req.user.id
-    });
-    res.status(201).json(nouveauCommentaire);
-  } catch (error) {
-    res.status(500).json({ erreur: error.message });
-  }
-});
-
 // -------------------- ROUTES PROPRIETAIRE --------------------
+
 app.post("/owner/salles", verifierRole(["proprietaire"]), upload.array("photos", 5), async (req, res) => {
   try {
     const { nom, description, capacite, prix, latitude, longitude } = req.body;
@@ -283,6 +258,35 @@ app.get("/owner/salles", verifierRole(["proprietaire"]), async (req, res) => {
   }
 });
 
+// -------------------- ROUTES ADMIN --------------------
+
+app.get("/admin/salles", verifierRole(["admin"]), async (req, res) => {
+  try {
+    const salles = await salle.findAll();
+    res.json(salles);
+  } catch (error) {
+    res.status(500).json({ erreur: error.message });
+  }
+});
+
+app.get("/admin/users", verifierRole(["admin"]), async (req, res) => {
+  try {
+    const users = await utilisateur.findAll();
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ erreur: error.message });
+  }
+});
+
+app.put("/admin/users/:id/status", verifierRole(["admin"]), async (req, res) => {
+  try {
+    await utilisateur.update({ status: req.body.status }, { where: { id: req.params.id } });
+    res.json({ message: "Statut utilisateur mis à jour" });
+  } catch (error) {
+    res.status(500).json({ erreur: error.message });
+  }
+});
+
 // -------------------- DB SYNC & START --------------------
 sequelize.authenticate()
   .then(() => {
@@ -291,6 +295,10 @@ sequelize.authenticate()
   })
   .then(() => {
     console.log("Base synchronisée");
-    app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
+    app.listen(port, () => {
+     
+      console.log(`Server running on http://localhost:${port}`);
+      
+    });
   })
   .catch(err => console.error("Erreur DB:", err));
