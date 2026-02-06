@@ -104,26 +104,26 @@ Le projet suit une **architecture client–serveur** et repose sur une séparati
      npm install multer
    - **path** : Module Node.js utilisé pour récuperer le chemin vers le dossier uploads ou les images sont stockées.
      
-###Sécurité :
-            - Clé secrète codée en dur utilisée pour signaler les token JWT.
-            - Middleware "verifierRole" pour vérifier le rôle des utilisateurs avant l'accès à certaines routes.
+### Sécurité :
+- Clé secrète codée en dur utilisée pour signaler les token JWT.
+- Middleware "verifierRole" pour vérifier le rôle des utilisateurs avant l'accès à certaines routes.
 
-##3. Base de données : (SQL)
+## 3. Base de données : (SQL)
    - **phpMyAdmin** : interface graphique pour administrer la base de données.
    - **Modèles** : utilisateurs, salles, reservations et commentaires.
    - **Relations** :
-         Utilisateur 1→N Salle
-         Utilisateur 1→N Reservation
-         Salle 1→N Reservation
-         Salle 1→N Commentaire
-         Utilisateur 1→N Commentaire
+         - Utilisateur 1→N Salle
+         - Utilisateur 1→N Reservation
+         - Salle 1→N Reservation
+         - Salle 1→N Commentaire
+         - Utilisateur 1→N Commentaire
 
 **Lancement du serveur** : 
         
         ```bash
           node server.js
 
-##Diagramme UML :
+## Diagramme UML :
 
 
 <img width="1816" height="1054" alt="625972659_1199673548999219_6277959421632264574_n" src="https://github.com/user-attachments/assets/a6ab54f3-f4bf-4302-ad00-1ad8a64e6c43" />
