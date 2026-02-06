@@ -60,8 +60,8 @@ Le projet suit une **architecture client–serveur** et sépare entre le fronten
 
 - **React.js** : bibliothèque pour construire une interface utilisateur dynamique.  
   ```bash
-  npm create vite@latest client
-  cd client
+  npm create vite@latest roomBook
+  cd roomBook
   npm install
 
 - **react-router-dom** : Pour gerer la navigation et les routes.  
