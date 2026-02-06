@@ -140,7 +140,6 @@ export default function AdminDashboard() {
       {/* CONTENU PRINCIPAL */}
       <main className="max-w-7xl mx-auto px-6 pt-16">
         <h1 className="text-5xl font-serif italic mb-8">Modération</h1>
-        
         {/* UTILISATEURS ET SALLES */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           <div className="lg:col-span-2 space-y-12">
@@ -238,6 +237,7 @@ export default function AdminDashboard() {
           <section className="bg-white border border-stone-200 shadow-sm h-fit">
             <div className="p-6 border-b border-stone-100 bg-stone-50/30">
               <h2 className="text-[11px] font-bold uppercase tracking-widest text-[#B38B59]">Modération Avis</h2>
+
 
             </div>
 

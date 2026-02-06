@@ -14,7 +14,6 @@ export default function ClientDashboard() {
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const [filterWilaya, setFilterWilaya] = useState("");
   const [filterBudget, setFilterBudget] = useState("");
   const [selectedRoom, setSelectedRoom] = useState(null);
 
@@ -22,12 +21,6 @@ export default function ClientDashboard() {
     date_debut: "",
     date_fin: ""
   });
-
-  const wilayas = [
-    "01 Adrar", "02 Chlef", "03 Laghouat", "04 Oum El Bouaghi", "05 Batna", "06 Béjaïa",
-    "07 Biskra", "08 Béchar", "09 Blida", "10 Bouira", "16 Alger", "19 Sétif",
-    "25 Constantine", "31 Oran"
-  ];
 
   // -------------------- FETCH DATA --------------------
   useEffect(() => {
@@ -92,8 +85,6 @@ export default function ClientDashboard() {
       if (res.ok) {
         setNewComment("");
         fetchComments(selectedRoom.id);
-      } else {
-        console.error("Erreur lors de l'envoi du commentaire");
       }
     } catch (err) {
       console.error(err);
@@ -169,15 +160,8 @@ export default function ClientDashboard() {
           </div>
         </section>
 
-        {/* FILTRAGE DES SALLES */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12 bg-white p-8 border border-stone-200 shadow-sm">
-          <div className="flex flex-col">
-            <label className="text-[10px] uppercase font-bold opacity-40 mb-2">Filtrer par Wilaya</label>
-            <select value={filterWilaya} onChange={(e) => setFilterWilaya(e.target.value)} className="bg-transparent border-b border-stone-300 py-2 outline-none italic text-sm">
-              <option value="">Toute l'Algérie</option>
-              {wilayas.map(w => <option key={w} value={w}>{w}</option>)}
-            </select>
-          </div>
+        {/* FILTRAGE PAR BUDGET */}
+        <div className="flex gap-4 mb-12 bg-white p-8 border border-stone-200 shadow-sm">
           <div className="flex flex-col">
             <label className="text-[10px] uppercase font-bold opacity-40 mb-2">Budget Max (DA)</label>
             <input type="number" value={filterBudget} onChange={(e) => setFilterBudget(e.target.value)} className="bg-transparent border-b border-stone-300 py-2 outline-none font-bold text-sm" placeholder="Ex: 60000" />
@@ -188,12 +172,16 @@ export default function ClientDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {rooms
 
-            .filter(r => (filterWilaya === "" || r.wilaya === filterWilaya) && (filterBudget === "" || r.prix <= parseInt(filterBudget)))
+            .filter(r => filterBudget === "" || r.prix <= parseInt(filterBudget))
             .map(room => (
               <div key={room.id} className="bg-white border border-stone-200 group relative">
                 <div className="h-56 overflow-hidden relative">
-                  <img src={`http://localhost:3000${room.img}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={room.nom} />
-                  <div className="absolute top-4 left-4 bg-[#0F0F0F] text-white px-3 py-1 text-[8px] font-bold uppercase tracking-widest">{room.wilaya || "Algérie"}</div>
+                  <img
+                    src={room.img?.startsWith("/uploads/") ? `http://localhost:3000${room.img}` : `http://localhost:3000/uploads/${room.img}`}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                    alt={room.nom}
+                  />
+
                 </div>
                 <div className="p-6">
                   <h3 className="text-xl font-serif mb-2">{room.nom}</h3>
@@ -205,7 +193,7 @@ export default function ClientDashboard() {
         </div>
       </main>
 
-      {/* MODAL DÉTAILS SALLE */}
+      {/* MODAL */}
       {selectedRoom && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#0F0F0F]/90 backdrop-blur-sm p-4">
           <div className="bg-[#F9F6F2] w-full max-w-4xl p-10 relative max-h-[90vh] overflow-y-auto">
@@ -216,46 +204,32 @@ export default function ClientDashboard() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-              {/* Formulaire réservation */}
               <form onSubmit={handleBookingSubmit} className="flex flex-col gap-6">
-                <h3 className="text-sm font-bold uppercase tracking-widest border-b border-stone-200 pb-2">Réserver cette salle</h3>
+                <h3 className="text-sm font-bold uppercase tracking-widest border-b border-stone-200 pb-2">Réserver</h3>
                 <div className="flex flex-col border-b border-stone-300 py-2">
-                  <label className="text-[9px] uppercase font-bold opacity-40">Date de début</label>
+                  <label className="text-[9px] uppercase font-bold opacity-40">Début</label>
                   <input required type="date" value={bookingData.date_debut} onChange={(e) => setBookingData({...bookingData, date_debut: e.target.value})} className="bg-transparent outline-none" />
                 </div>
                 <div className="flex flex-col border-b border-stone-300 py-2">
-                  <label className="text-[9px] uppercase font-bold opacity-40">Date de fin</label>
+                  <label className="text-[9px] uppercase font-bold opacity-40">Fin</label>
                   <input required type="date" value={bookingData.date_fin} onChange={(e) => setBookingData({...bookingData, date_fin: e.target.value})} className="bg-transparent outline-none" />
                 </div>
-                <button type="submit" className="bg-[#0F0F0F] text-white py-5 text-[10px] uppercase font-bold tracking-[0.3em] hover:bg-[#B38B59] transition-colors">
-                  Confirmer la demande
-                </button>
+                <button type="submit" className="bg-[#0F0F0F] text-white py-5 text-[10px] uppercase font-bold tracking-[0.3em] hover:bg-[#B38B59] transition-colors">Confirmer</button>
               </form>
 
-              {/* Commentaires */}
               <div className="flex flex-col gap-6">
-                <h3 className="text-sm font-bold uppercase tracking-widest border-b border-stone-200 pb-2">Avis des clients</h3>
-                <div className="max-h-48 overflow-y-auto pr-2 flex flex-col gap-4">
-                  {roomComments.length > 0 ? roomComments.map(c => (
+                <h3 className="text-sm font-bold uppercase tracking-widest border-b border-stone-200 pb-2">Avis</h3>
+                <div className="max-h-48 overflow-y-auto flex flex-col gap-4">
+                  {roomComments.map(c => (
                     <div key={c.id} className="bg-white p-3 border border-stone-200 shadow-sm">
                       <p className="text-[10px] font-bold uppercase opacity-50">{c.utilisateur?.name || "Client"}</p>
                       <p className="text-xs italic">"{c.contenu}"</p>
                     </div>
-                  )) : <p className="text-xs opacity-50 italic">Aucun avis pour le moment.</p>}
+                  ))}
                 </div>
-
                 <form onSubmit={handleCommentSubmit} className="mt-4 flex flex-col gap-2">
-                  <label className="text-[9px] uppercase font-bold opacity-40">Laisser un avis</label>
-                  <textarea 
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    className="bg-transparent border border-stone-300 p-2 text-xs italic outline-none resize-none"
-                    placeholder="Votre expérience..."
-                    rows="2"
-                  />
-                  <button type="submit" className="text-[9px] uppercase font-bold tracking-widest border border-black py-2 hover:bg-black hover:text-white transition-all">
-                    Publier l'avis
-                  </button>
+                  <textarea value={newComment} onChange={(e) => setNewComment(e.target.value)} className="bg-transparent border border-stone-300 p-2 text-xs italic outline-none resize-none" placeholder="Votre avis..." rows="2" />
+                  <button type="submit" className="text-[9px] uppercase font-bold tracking-widest border border-black py-2">Publier</button>
                 </form>
               </div>
             </div>
