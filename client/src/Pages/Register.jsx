@@ -4,65 +4,88 @@ import Navbar from "../Components/Navbar";
 
 export default function Register() {
   const navigate = useNavigate();
-  const [userType, setUserType] = useState(null); // 'client' or 'owner'
+  const [userType, setUserType] = useState(null); // 'client' ou 'owner'
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
-    firstname: "",
-    lastname: "",
-    email: "",
-    wilaya: "",
+    name: "",
+    username: "",
     password: ""
   });
 
-  const wilayas = [
-    "01 Adrar", "02 Chlef", "03 Laghouat", "04 Oum El Bouaghi", "05 Batna", "06 Béjaïa", "07 Biskra", "08 Béchar", "09 Blida", "10 Bouira",
-    "11 Tamanrasset", "12 Tébessa", "13 Tlemcen", "14 Tiaret", "15 Tizi Ouzou", "16 Alger", "17 Djelfa", "18 Jijel", "19 Sétif", "20 Saïda",
-    "21 Skikda", "22 Sidi Bel Abbès", "23 Annaba", "24 Guelma", "25 Constantine", "26 Médéa", "27 Mostaganem", "28 M'Sila", "29 Mascara", "30 Ouargla",
-    "31 Oran", "32 El Bayadh", "33 Illizi", "34 Bordj Bou Arréridj", "35 Boumerdès", "36 El Tarf", "37 Tindouf", "38 Tissemsilt", "39 El Oued", "40 Khenchela",
-    "41 Souk Ahras", "42 Tipaza", "43 Mila", "44 Aïn Defla", "45 Naâma", "46 Aïn Témouchent", "47 Ghardaïa", "48 Relizane", "49 El M'Ghair", "50 El Meniaa",
-    "51 Ouled Djellal", "52 Bordj Baji Mokhtar", "53 Béni Abbès", "54 Timimoun", "55 Touggourt", "56 Djanet", "57 In Salah", "58 In Guezzam"
-  ];
-
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    if (error) setError(""); 
+    if (error) setError("");
+    if (successMessage) setSuccessMessage("");
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setSuccessMessage("");
 
-    // Validation Email simple
-    if (!formData.email.includes("@")) {
-      setError("Veuillez entrer une adresse email valide.");
+    if (!formData.name || formData.name.length < 3) {
+      setError("Veuillez entrer votre nom complet (au moins 3 caractères).");
       return;
     }
 
-    // Validation Wilaya (si propriétaire)
-    if (userType === "owner" && !formData.wilaya) {
-      setError("Veuillez sélectionner une Wilaya.");
+    if (formData.username.length < 3) {
+      setError("Le nom d'utilisateur doit contenir au moins 3 caractères.");
       return;
     }
 
-    
     if (formData.password.length < 6) {
       setError("Le mot de passe doit contenir au moins 6 caractères.");
       return;
     }
 
-    console.log("Inscription réussie :", formData);
-    alert("Compte créé avec succès !");
-    navigate("/login");
+    if (!userType) {
+      setError("Veuillez choisir un type de profil.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch("http://localhost:3000/inscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name,
+          username: formData.username,
+          password: formData.password,
+          role: userType
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || data.erreur || "Erreur lors de l'inscription.");
+        setLoading(false);
+        return;
+      }
+
+      setSuccessMessage(data.message || "Compte créé avec succès !");
+      setLoading(false);
+
+      // rediriger après 3 secondes
+      setTimeout(() => navigate("/login"), 3000);
+
+    } catch (err) {
+      setError("Erreur serveur. Vérifiez la connexion.");
+      console.error(err);
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-[#F9F6F2] selection:bg-[#B38B59] selection:text-white flex flex-col">
       <Navbar />
-
       <main className="flex-grow flex items-center justify-center px-6 pt-32 pb-12">
         <div className="w-full max-w-[550px] bg-white border border-[#0F0F0F]/5 p-10 md:p-16 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.05)]">
-          
+
           <div className="text-center space-y-4 mb-12">
             <h1 className="text-4xl font-serif text-[#0F0F0F] italic">Inscription</h1>
             <p className="text-[10px] uppercase tracking-[0.4em] text-[#B38B59] font-bold italic">ROOMBOOK Expérience</p>
@@ -82,37 +105,32 @@ export default function Register() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6 animate-in zoom-in-95 duration-500">
+
+              {/* Message succès */}
+              {successMessage && (
+                <div className="bg-green-50 border-l-4 border-green-500 p-4 mb-4">
+                  <p className="text-green-700 text-[10px] font-bold uppercase tracking-widest">
+                    {successMessage}
+                  </p>
+                </div>
+              )}
+
+              {/* Message erreur */}
               {error && (
                 <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
                   <p className="text-red-700 text-[10px] font-bold uppercase tracking-widest">{error}</p>
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col border-b border-stone-200 py-2">
-                  <label className="text-[9px] uppercase tracking-widest opacity-50 mb-1">Prénom</label>
-                  <input name="firstname" type="text" required onChange={handleInputChange} className="bg-transparent outline-none italic" />
-                </div>
-                <div className="flex flex-col border-b border-stone-200 py-2">
-                  <label className="text-[9px] uppercase tracking-widest opacity-50 mb-1">Nom</label>
-                  <input name="lastname" type="text" required onChange={handleInputChange} className="bg-transparent outline-none italic" />
-                </div>
+              <div className="flex flex-col border-b border-stone-200 py-2">
+                <label className="text-[9px] uppercase tracking-widest opacity-50 mb-1">Nom complet</label>
+                <input name="name" type="text" required onChange={handleInputChange} className="bg-transparent outline-none italic" placeholder="Votre nom complet" />
               </div>
 
               <div className="flex flex-col border-b border-stone-200 py-2">
-                <label className="text-[9px] uppercase tracking-widest opacity-50 mb-1">Email</label>
-                <input name="email" type="email" required onChange={handleInputChange} className="bg-transparent outline-none italic" />
+                <label className="text-[9px] uppercase tracking-widest opacity-50 mb-1">Nom d'utilisateur</label>
+                <input name="username" type="text" required onChange={handleInputChange} className="bg-transparent outline-none italic" placeholder="Votre nom d'utilisateur" />
               </div>
-
-              {userType === 'owner' && (
-                <div className="flex flex-col border-b border-stone-200 py-2 animate-in fade-in slide-in-from-top-2">
-                  <label className="text-[9px] uppercase tracking-widest opacity-50 mb-1">Wilaya de l'espace</label>
-                  <select name="wilaya" required onChange={handleInputChange} className="bg-transparent outline-none text-sm italic">
-                    <option value="">Choisir la wilaya</option>
-                    {wilayas.map(w => <option key={w} value={w}>{w}</option>)}
-                  </select>
-                </div>
-              )}
 
               <div className="flex flex-col border-b border-stone-200 py-2">
                 <label className="text-[9px] uppercase tracking-widest opacity-50 mb-1">Mot de passe</label>
@@ -120,8 +138,8 @@ export default function Register() {
               </div>
 
               <div className="pt-6 space-y-4">
-                <button type="submit" className="w-full bg-[#0F0F0F] text-white py-5 text-[11px] uppercase tracking-[0.4em] font-bold hover:bg-[#B38B59] transition-all">
-                  S'inscrire en tant que {userType === 'owner' ? 'Hôte' : 'Client'}
+                <button type="submit" disabled={loading} className="w-full bg-[#0F0F0F] text-white py-5 text-[11px] uppercase tracking-[0.4em] font-bold hover:bg-[#B38B59] transition-all">
+                  {loading ? "Chargement..." : `S'inscrire en tant que ${userType === 'owner' ? 'Hôte' : 'Client'}`}
                 </button>
                 <button type="button" onClick={() => setUserType(null)} className="w-full text-[9px] uppercase opacity-40 hover:opacity-100">
                   ← Retour

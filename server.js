@@ -133,14 +133,14 @@ app.post('/connexion', async(req, res) => {
 });
 
         // +++ API utilisateurs +++
-app.get('/users'verifierRole(['admin']), (req, res)=>{
+app.get('/users', verifierRole(['admin']), (req, res) => {
     utilisateur.findAll({ attributes: { exclude: ['password'] } })
     .then(users => {
          res.json(users);
     })
 });
         // +++ API utilisateur par ID +++
-app.get('/users/:id' verifierRole(['admin', 'proprietaire']), (req, res)=>{
+app.get('/users/:id', verifierRole(['admin', 'proprietaire']), (req, res)=>{
     utilisateur.findByPk(req.params.id,{ attributes: { exclude: ['password'] } })
     .then(user => {
         if(!user){
