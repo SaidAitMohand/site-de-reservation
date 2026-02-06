@@ -2,7 +2,8 @@
 
 Ce projet consiste à concevoir et developper une plateforme full-stack de réservation de salles basée sur un frontend intercatif et un backend RESTful.  
 
-**Architecture du projet :**
+**Architecture du projet :**  
+
 Vue d'ensemble:  
 
 Le projet suit une architecture client-serveur et sépare le front-end, le back-end et la base de données.  
@@ -25,34 +26,62 @@ Le projet suit une architecture client-serveur et sépare le front-end, le back-
 [Réponse JSON] -> frontend -> affichage utilisateur  
 
 
-1.Front-end :
-    Fonctionnalités principales :
-       - Page d’accueil affichant les salles disponibles.
-       - Formulaire d’inscription et de connexion.
-            Client :
-                - Rechercher et filtrer les salles.
-                - Visualiser les salles sur une carte.
-                - Réserver une salle et consulter l’historique de reservations.
-                - Laisser des commentaires.
-            Propriétaire :
-                - Ajouter, modifier, supprimer SES salles.
-                - Voir les commentaires et avis des clients.
-                - Consulter les statistiques (nombre de réservations, total des revenus).
-            Administrateur :
-                - Gérer les comptes utilisateurs.
+1.Front-end :  
+
+    Fonctionnalités principales :  
+    
+       - Page d’accueil affichant les salles disponibles.  
+       
+       - Formulaire d’inscription et de connexion.  
+       
+            Client :  
+            
+                - Rechercher et filtrer les salles.  
+                
+                - Visualiser les salles sur une carte.  
+                
+                - Réserver une salle et consulter l’historique de reservations.  
+                
+                - Laisser des commentaires.  
+                
+            Propriétaire :  
+            
+                - Ajouter, modifier, supprimer SES salles.  
+                
+                - Voir les commentaires et avis des clients.  
+                
+                - Consulter les statistiques (nombre de réservations, total des revenus).  
+                
+            Administrateur :  
+            
+                - Gérer les comptes utilisateurs.  
+                
                 - Supprimer ou modérer les annonces et commentaires.    
-    Technologies utilisées :
-            - React.js : Bilblothèque pour construire une interface utilisateur dynamique
-                         commandes : |nmp create vite@latest client
-                                     |cd client
-                                     |npm install
-            - react-router-dom : Pour gerer la navigation et les routes.
-                                 Commande :|npm install react-router-dom
-            - Tailwind CSS v4 : framework CSS pour la réactivité et le style.
-                                Commandes: |npm install -D tailwindcss postcss autoprefixer
-                                           |npx tailwindcss init -p
-            - Leaflet : Pour afficher une carte interactive et visualiser les salles.
-                        Commande : |npm install leaflet
+                
+    Technologies utilisées :  
+    
+            - React.js : Bilblothèque pour construire une interface utilisateur dynamique  
+            
+                         commandes : |nmp create vite@latest client  
+                         
+                                     |cd client  
+                                     
+                                     |npm install  
+                                     
+            - react-router-dom : Pour gerer la navigation et les routes.  
+            
+                                 Commande :|npm install react-router-dom  
+                                 
+            - Tailwind CSS v4 : framework CSS pour la réactivité et le style.  
+            
+                                Commandes: |npm install -D tailwindcss postcss autoprefixer  
+                                
+                                           |npx tailwindcss init -p  
+                                           
+            - Leaflet : Pour afficher une carte interactive et visualiser les salles.  
+            
+                        Commande : |npm install leaflet  
+                        
 
 2.Backend :
     Fonctionnalités principales:
