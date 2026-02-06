@@ -118,5 +118,12 @@ Le projet suit une **architecture client–serveur** et repose sur une séparati
          Salle 1→N Commentaire
          Utilisateur 1→N Commentaire
 
-**Lancement du serveur** : Commande: |node server.js
+**Lancement du serveur** : 
+        
+        ```bash
+          node server.js
 
+##Diagramme UML :
+
+
+<img width="1816" height="1054" alt="625972659_1199673548999219_6277959421632264574_n" src="https://github.com/user-attachments/assets/a6ab54f3-f4bf-4302-ad00-1ad8a64e6c43" />
