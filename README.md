@@ -1,21 +1,29 @@
 **Documentation du projet "Plateforme de réservation de salles" :**
 
-Ce projet consiste à concevoir et developper une plateforme full-stack de réservation de salles basée sur un frontend intercatif et un backend RESTful.
+Ce projet consiste à concevoir et developper une plateforme full-stack de réservation de salles basée sur un frontend intercatif et un backend RESTful.  
 
 **Architecture du projet :**
+Vue d'ensemble:  
 
-Vue d'ensemble:
-Le projet suit une architecture client-serveur et sépare le front-end, le back-end et la base de données.
-[Utilisateur Frontend] 
-      | requêtes HTTP (fetch/axios avec JWT)
+Le projet suit une architecture client-serveur et sépare le front-end, le back-end et la base de données.  
+
+[Utilisateur Frontend]   
+
+      | requêtes HTTP (fetch/axios avec JWT)  
+      
       v
-[Backend Express + Node.js] 
-      | logique métier, vérification, CRUD
+[Backend Express + Node.js]   
+
+      | logique métier, vérification, CRUD  
+      
       v
-[Base de données MariaDB/MySQL via Sequelize] 
-      | stockage et récupération des données
+[Base de données MariaDB/MySQL via Sequelize]   
+
+      | stockage et récupération des données  
+      
       v
-[Réponse JSON] -> frontend -> affichage utilisateur
+[Réponse JSON] -> frontend -> affichage utilisateur  
+
 
 1.Front-end :
     Fonctionnalités principales :
