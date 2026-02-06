@@ -330,7 +330,16 @@ app.put(
         }
     },
 );
-
+// 2. La route doit être publique
+app.get("/salles-publiques", async(req, res) => {
+    try {
+        const salles = await Salle.findAll(); // Vérifie que ton modèle s'appelle bien Salle
+        console.log("Salles trouvées :", salles.length); // Regarde tes logs serveur
+        res.json(salles);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
 //route 4: supprimer une Salle avec son ID (DELETE)
 
 app.delete(

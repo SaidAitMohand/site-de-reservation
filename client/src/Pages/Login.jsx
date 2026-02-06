@@ -57,7 +57,10 @@ export default function Login() {
           navigate("/admin/dashboard");
         } else if (data.role === "proprietaire") {
           navigate("/owner-dashboard");
-        } else {
+        }
+        else if (data.role === "client") {
+        navigate("/client-dashboard");
+      } else {
         
           navigate("/");
         }

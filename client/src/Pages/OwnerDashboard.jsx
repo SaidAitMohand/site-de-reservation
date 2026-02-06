@@ -5,7 +5,6 @@ import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-lea
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
-// Fix pour les icônes de marqueurs Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
@@ -16,68 +15,86 @@ L.Icon.Default.mergeOptions({
 export default function OwnerDashboard() {
   const navigate = useNavigate();
 
-  // --- ÉTATS (STATES) ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
   const [myRooms, setMyRooms] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  // Localisation par défaut (Alger)
+  const [stats, setStats] = useState({ totalRooms: 0, totalBookings: 0, totalRevenue: 0 });
   const [position, setPosition] = useState({ lat: 36.737, lng: 3.088 });
-  
-  // Images
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [previews, setPreviews] = useState([]);
-  
-  // Types
   const [selectedTypes, setSelectedTypes] = useState([]);
 
-  // --- CONFIGURATION ---
   const token = localStorage.getItem("token");
   const userName = localStorage.getItem("userName") || "Propriétaire";
   const API_URL = "http://localhost:3000";
-  const eventOptions = ["Mariage", "Conférence", "Anniversaire", "Shooting", "Dîner", "Séminaire"];
 
   useEffect(() => {
     if (!token) {
       navigate("/login");
     } else {
-      fetchRooms();
+      fetchData();
     }
   }, [token]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    await Promise.all([fetchRooms(), fetchStats()]);
+    setLoading(false);
+  };
 
   const fetchRooms = async () => {
     try {
       const response = await fetch(`${API_URL}/owner/salles`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
-      if (response.status === 401) {
-        localStorage.clear();
-        navigate("/login");
-      }
       const data = await response.json();
       if (response.ok) setMyRooms(data);
-    } catch (err) {
-      console.error("Erreur récupération salles:", err);
-    } finally {
-      setLoading(false);
+    } catch (err) { console.error("Erreur salles:", err); }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch(`${API_URL}/owner/stats`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (response.ok) setStats(data);
+    } catch (err) { console.error("Erreur stats:", err); }
+  };
+
+ 
+  const handleDelete = async (roomId) => {
+    if (window.confirm("Êtes-vous sûr de vouloir supprimer cette salle ? Cette action est irréversible.")) {
+      try {
+        const response = await fetch(`${API_URL}/owner/salles/${roomId}`, {
+          method: "DELETE",
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+        
+          setMyRooms(myRooms.filter(room => room.id !== roomId));
+          fetchStats(); // Pour mettre à jour le compteur de salles
+        } else {
+          alert("Erreur lors de la suppression.");
+        }
+      } catch (err) {
+        console.error("Erreur suppression:", err);
+        alert("Impossible de contacter le serveur.");
+      }
     }
   };
 
-  // --- GESTION DES IMAGES ---
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
     setSelectedFiles(files);
-    const filePreviews = files.map(file => URL.createObjectURL(file));
-    setPreviews(filePreviews);
+    setPreviews(files.map(file => URL.createObjectURL(file)));
   };
 
-  // --- LOGIQUE CARTE ---
   function LocationMarker() {
-    useMapEvents({
-      click(e) { setPosition(e.latlng); },
-    });
+    useMapEvents({ click(e) { setPosition(e.latlng); } });
     return <Marker position={position} />;
   }
 
@@ -92,26 +109,16 @@ export default function OwnerDashboard() {
     return null;
   }
 
-  // --- SOUMISSION ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
-
-    // Ajout manuel des données que FormData ne capte pas tout seul
     formData.append("latitude", position.lat);
     formData.append("longitude", position.lng);
     formData.append("types", JSON.stringify(selectedTypes));
-
-    // Ajout des fichiers (clé "photos" pour correspondre à upload.array("photos") dans server.js)
-    selectedFiles.forEach((file) => {
-      formData.append("photos", file);
-    });
+    selectedFiles.forEach((file) => formData.append("photos", file));
 
     try {
-      const url = editingRoom 
-        ? `${API_URL}/owner/salles/${editingRoom.id}` 
-        : `${API_URL}/owner/salles`;
-
+      const url = editingRoom ? `${API_URL}/owner/salles/${editingRoom.id}` : `${API_URL}/owner/salles`;
       const response = await fetch(url, {
         method: editingRoom ? "PUT" : "POST",
         headers: { "Authorization": `Bearer ${token}` },
@@ -120,18 +127,12 @@ export default function OwnerDashboard() {
 
       if (response.ok) {
         setIsModalOpen(false);
-        fetchRooms();
-        // Reset
+        fetchData();
         setPreviews([]);
         setSelectedFiles([]);
         setEditingRoom(null);
-      } else {
-        const errData = await response.json();
-        alert("Erreur : " + errData.message);
       }
-    } catch (err) {
-      alert("Impossible de contacter le serveur.");
-    }
+    } catch (err) { alert("Erreur serveur."); }
   };
 
   const openEditModal = (room = null) => {
@@ -142,39 +143,56 @@ export default function OwnerDashboard() {
     setIsModalOpen(true);
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center italic">Chargement du dashboard...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center italic">Chargement...</div>;
 
   return (
     <div className="min-h-screen bg-[#F9F6F2] text-[#0F0F0F] pb-20">
       <main className="max-w-7xl mx-auto px-6 pt-16">
         <Header userName={userName} onOpenSettings={() => setIsSettingsOpen(true)} onLogout={() => { localStorage.clear(); navigate("/login"); }} />
 
-        <div className="flex justify-between items-end mb-16 mt-10">
-          <div>
-            <h1 className="text-4xl font-serif italic">Espace Business</h1>
-            <p className="text-[10px] uppercase tracking-widest text-[#B38B59] mt-2 font-bold">Gérez vos établissements de luxe</p>
-          </div>
+        <div className="flex justify-between items-end mb-12 mt-10">
+          <h1 className="text-4xl font-serif italic">Espace Business</h1>
           <button onClick={() => openEditModal()} className="bg-[#0F0F0F] text-white px-8 py-4 text-[10px] uppercase font-bold tracking-widest hover:bg-[#B38B59] transition-all">
             + Publier une salle
           </button>
         </div>
 
-        {/* --- LISTE DES SALLES --- */}
+     
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+          <div className="bg-white p-8 border border-stone-200 shadow-sm">
+            <p className="text-[9px] uppercase tracking-widest opacity-40 mb-2 font-bold">Établissements</p>
+            <p className="text-3xl font-serif italic">{stats.totalRooms}</p>
+          </div>
+          <div className="bg-white p-8 border border-stone-200 shadow-sm">
+            <p className="text-[9px] uppercase tracking-widest opacity-40 mb-2 font-bold">Réservations Totales</p>
+            <p className="text-3xl font-serif italic">{stats.totalBookings}</p>
+          </div>
+          <div className="bg-white p-8 border border-stone-200 shadow-sm">
+            <p className="text-[9px] uppercase tracking-widest opacity-40 mb-2 font-bold">Revenus (DA)</p>
+            <p className="text-3xl font-serif italic text-[#B38B59]">{stats.totalRevenue.toLocaleString()} DA</p>
+          </div>
+        </div>
+
+     
         <section className="space-y-8">
           <h2 className="text-xl font-serif italic border-b pb-2 mb-6">Vos Établissements</h2>
-          {myRooms.length === 0 && <p className="italic text-stone-400">Aucune salle publiée pour le moment.</p>}
+          {myRooms.length === 0 && <p className="italic text-stone-400">Aucune salle publiée.</p>}
           {myRooms.map(room => (
             <div key={room.id} className="bg-white border border-stone-200 flex flex-col md:flex-row shadow-sm">
               <img src={room.img ? `${API_URL}${room.img}` : "https://via.placeholder.com/300"} className="md:w-64 h-48 object-cover" alt={room.nom} />
               <div className="p-6 flex-grow">
-                <div className="flex justify-between">
+                <div className="flex justify-between items-start">
                   <h3 className="text-2xl font-serif">{room.nom}</h3>
-                  <button onClick={() => openEditModal(room)} className="text-[9px] font-bold uppercase border-b border-black">Modifier</button>
+                  <div className="flex gap-4">
+                    <button onClick={() => openEditModal(room)} className="text-[9px] font-bold uppercase border-b border-black">Modifier</button>
+                 
+                    <button onClick={() => handleDelete(room.id)} className="text-[9px] font-bold uppercase text-red-600 hover:text-red-800 transition-colors">Supprimer</button>
+                  </div>
                 </div>
                 <p className="text-xs text-stone-500 mt-2 italic line-clamp-2">{room.description}</p>
                 <div className="flex gap-8 mt-6 border-t pt-4">
-                  <div><span className="block text-[8px] uppercase opacity-40">Tarif journalier</span><span className="text-lg font-serif italic text-[#B38B59]">{room.prix} DA</span></div>
-                  <div><span className="block text-[8px] uppercase opacity-40">Capacité max</span><span className="text-lg font-serif italic">{room.capacite} pers.</span></div>
+                  <div><span className="block text-[8px] uppercase opacity-40">Tarif</span><span className="text-lg font-serif italic text-[#B38B59]">{room.prix} DA</span></div>
+                  <div><span className="block text-[8px] uppercase opacity-40">Capacité</span><span className="text-lg font-serif italic">{room.capacite} pers.</span></div>
                 </div>
               </div>
             </div>
@@ -182,75 +200,16 @@ export default function OwnerDashboard() {
         </section>
       </main>
 
-      {/* --- MODAL AJOUT / ÉDITION --- */}
+      
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0F0F0F]/90 backdrop-blur-sm p-4">
           <div className="bg-[#F9F6F2] w-full max-w-4xl p-10 overflow-y-auto max-h-[90vh] shadow-2xl relative">
-            <h2 className="text-2xl font-serif italic mb-10">{editingRoom ? "Modifier l'espace" : "Nouveau Référencement"}</h2>
-            
+            <h2 className="text-2xl font-serif italic mb-10">{editingRoom ? "Modifier" : "Nouveau Référencement"}</h2>
             <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Infos de base */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="flex flex-col border-b border-stone-300 py-2">
-                  <label className="text-[9px] uppercase font-bold opacity-40">Nom commercial</label>
-                  <input name="nom" defaultValue={editingRoom?.nom} className="bg-transparent outline-none italic text-lg" required />
-                </div>
-                <div className="flex flex-col border-b border-stone-300 py-2">
-                  <label className="text-[9px] uppercase font-bold opacity-40">Tarif (DA)</label>
-                  <input name="prix" type="number" defaultValue={editingRoom?.prix} className="bg-transparent outline-none font-bold text-lg" required />
-                </div>
-                <div className="flex flex-col border-b border-stone-300 py-2">
-                  <label className="text-[9px] uppercase font-bold opacity-40">Capacité</label>
-                  <input name="capacite" type="number" defaultValue={editingRoom?.capacite} className="bg-transparent outline-none font-bold text-lg" required />
-                </div>
-              </div>
-
-              {/* Description (IMPORTANT : Résout l'erreur 400) */}
-              <div className="flex flex-col border-b border-stone-300 py-2">
-                <label className="text-[9px] uppercase font-bold opacity-40">Description détaillée</label>
-                <textarea 
-                  name="description" 
-                  defaultValue={editingRoom?.description} 
-                  className="bg-transparent outline-none italic text-lg h-24 resize-none" 
-                  placeholder="Décrivez le prestige de votre salle..."
-                  required 
-                />
-              </div>
-
-              {/* Photos */}
-              <div className="space-y-4">
-                <label className="text-[10px] uppercase font-bold text-[#B38B59]">Galerie Photos</label>
-                <div className="flex flex-wrap gap-4">
-                  <label className="w-24 h-24 border-2 border-dashed border-stone-300 flex flex-col items-center justify-center cursor-pointer hover:border-black">
-                    <span className="text-xl">+</span>
-                    <input type="file" multiple accept="image/*" className="hidden" onChange={handleImageChange} />
-                  </label>
-                  {previews.map((src, i) => (
-                    <img key={i} src={src} className="w-24 h-24 object-cover border border-stone-200" alt="preview" />
-                  ))}
-                </div>
-              </div>
-
-              {/* Carte */}
-              <div className="space-y-4">
-                <label className="text-[10px] uppercase font-bold text-[#B38B59]">Localisation précise (Cliquez sur la carte)</label>
-                <div className="h-64 w-full border border-stone-300 overflow-hidden">
-                  <MapContainer center={[position.lat, position.lng]} zoom={13} style={{ height: "100%", width: "100%" }}>
-                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                    <LocationMarker />
-                    <MapViewFix center={position} />
-                  </MapContainer>
-                </div>
-              </div>
-
-              {/* Boutons d'action */}
+            
               <div className="flex gap-4 pt-6">
-                <button type="submit" className="flex-grow bg-[#0F0F0F] text-white py-5 text-[10px] uppercase font-bold tracking-widest hover:bg-[#B38B59]">
-                  {editingRoom ? "Mettre à jour" : "Enregistrer les données"}
-                </button>
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-10 border border-black text-[10px] uppercase font-bold">
-                  Annuler
-                </button>
+                <button type="submit" className="flex-grow bg-[#0F0F0F] text-white py-5 text-[10px] uppercase font-bold tracking-widest hover:bg-[#B38B59]">Sauvegarder</button>
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-10 border border-black text-[10px] uppercase font-bold">Annuler</button>
               </div>
             </form>
           </div>
