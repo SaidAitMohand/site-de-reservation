@@ -252,7 +252,54 @@ app.post("/reservations/:salleId", verifierRole(["client"]), async (req, res) =>
     res.status(500).json({ erreur: error.message });
   }
 });
+// calcul du revenu total du proprietaire
 
+app.get("/owner/revenus", verifierRole(["proprietaire"]), async (req, res) => {
+  try {
+    const reservations = await Reservation.findAll({
+      include: [
+        {
+          model: salle,
+          where: { proprietaire_id: req.user.id },
+          attributes: ["prix", "nom"],
+        },
+      ],
+    });
+
+    let revenuTotal = 0;
+
+    const details = reservations.map((r) => {
+      const dateDebut = new Date(r.date_debut);
+      const dateFin = new Date(r.date_fin);
+
+      //Math.max sert à compter au moins un jour de reservation même si le nombre d'heures est inferieur à 24h
+      const dureeJours = Math.max(
+        1,
+        Math.ceil((dateFin - dateDebut) / (1000 * 60 * 60 * 24)), // Conertir le resultat de la soustraction en nombre de jours
+      );
+      const montant = dureeJours * r.salle.prix;
+      revenuTotal += montant;
+
+      return {
+        salle: r.salle.nom,
+        date_debut: r.date_debut,
+        date_fin: r.date_fin,
+        duree_jours: dureeJours,
+        prix_jour: r.salle.prix,
+        montant,
+      };
+    });
+
+    res.json({
+      proprietaire_id: req.user.id,
+      revenu_total: revenuTotal,
+      details,
+    });
+  } catch (error) {
+    res.status(500).json({ erreur: error.message });
+  }
+});
+req.user.id
 // -------------------- ROUTES PROPRIETAIRE --------------------
 
 app.post("/owner/salles", verifierRole(["proprietaire"]), upload.array("photos", 5), async (req, res) => {
