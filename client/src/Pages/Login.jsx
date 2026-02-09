@@ -38,7 +38,7 @@ export default function Login() {
 
     try {
       // 2. Appel API Connexion
-      const response = await fetch("http://localhost:4000/connexion", {
+      const response = await fetch("http://localhost:3000/connexion", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
@@ -57,7 +57,9 @@ export default function Login() {
           navigate("/admin/dashboard");
         } else if (data.role === "proprietaire") {
           navigate("/owner-dashboard");
-        } else {
+        } else if (data.role === "client") {
+          navigate("/client-dashboard");
+        }else {
         
           navigate("/");
         }

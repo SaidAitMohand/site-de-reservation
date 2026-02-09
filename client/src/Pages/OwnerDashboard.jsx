@@ -254,7 +254,7 @@ export default function OwnerDashboard() {
                 <p className="text-[8px] mt-2 italic text-stone-400 text-right">Lat: {position.lat.toFixed(4)} | Lng: {position.lng.toFixed(4)}</p>
                 
                 <div className="mt-auto flex gap-4 pt-10">
-                  <button type="submit" className="flex-grow bg-[#0F0F0F] text-white py-5 text-[10px] uppercase font-bold tracking-[0.3em] hover:bg-[#B38B59] transition-all">
+                  <button type="submit" onClick={handleSubmit} className="flex-grow bg-[#0F0F0F] text-white py-5 text-[10px] uppercase font-bold tracking-[0.3em] hover:bg-[#B38B59] transition-all">
                     Enregistrer les modifications
                   </button>
                 </div>
